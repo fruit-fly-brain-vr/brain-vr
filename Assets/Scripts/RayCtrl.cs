@@ -21,6 +21,9 @@ public class RayCtrl : MonoBehaviour
     public GameObject modePanel;
     public TextMeshProUGUI modeMsg;
 
+    public Camera birdCam;
+    public GameObject birdCamDisplay;
+
     private GameObject currentObj; // the object currently registered for selection
 
     private bool selected = false; // this is an flag set true when object is being manipuated by some tool
@@ -44,6 +47,8 @@ public class RayCtrl : MonoBehaviour
         rightToolMenu.SetActive(false);
         pinpointDisplay.SetActive(false);
         modePanel.SetActive(false);
+        birdCamDisplay.SetActive(false);
+        birdCam.enabled = false;
     } 
 
     void Update()
@@ -58,11 +63,15 @@ public class RayCtrl : MonoBehaviour
     void OpenMenu() {
         leftToolMenu.SetActive(leftToolMenuOpen);
         rightToolMenu.SetActive(rightToolMenuOpen);
-        if (leftToolMenuOpen | rightToolMenu)
+        if (leftToolMenuOpen)
         {
             SelectTool();
         }
-        else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstick)) {
+        else if (rightToolMenuOpen) {
+            SelectTool();
+        }
+        else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstick))
+        {
             leftToolMenuOpen = true;
             rightToolMenuOpen = false;
             modePanel.SetActive(false);
@@ -120,7 +129,7 @@ public class RayCtrl : MonoBehaviour
                 singleRayGrabZoomMode = false;
                 pinpointSelectMode = false;
                 twoRayDragZoomMode = false;
-                leftToolMenuOpen = false;
+                rightToolMenuOpen = false;
                 ShowModeMsg("Single Ray Grab and Move Close or Far"); // need better name
             }
 
@@ -154,6 +163,8 @@ public class RayCtrl : MonoBehaviour
             {
                 selected = false;
                 pinpointDisplay.SetActive(false);
+                birdCam.enabled = false;
+                birdCamDisplay.SetActive(false);
             }
         }
         else if (singleRayGrabZoomMode)
@@ -211,6 +222,8 @@ public class RayCtrl : MonoBehaviour
             currentObj = null;
             twoPointDistance = 0;
             pinpointDisplay.SetActive(false);
+            birdCamDisplay.SetActive(false);
+            birdCam.enabled = false;
         }
 
     }
@@ -221,7 +234,6 @@ public class RayCtrl : MonoBehaviour
     /// ABOVE THIS LINE ARE METHODS FOR UI FOR TOOL SELECTION
     /// BELOW THIS LINE ARE METHODS FOR INTERACTION TOOLS
     /// </summary>
-
 
 
     // single ray drag zoom mode
@@ -298,22 +310,22 @@ public class RayCtrl : MonoBehaviour
                 {
                     if (OVRInput.Get(OVRInput.RawButton.RThumbstickUp))
                     {
-                        currentObj.transform.localPosition *= (1+10*Time.deltaTime);//move further
+                        currentObj.transform.localPosition *= (1 + 3*Time.deltaTime);//move further
                     }
                     else if (OVRInput.Get(OVRInput.RawButton.RThumbstickDown))
                     {
-                        currentObj.transform.localPosition *= (1 - 10 * Time.deltaTime);// move closer
+                        currentObj.transform.localPosition *= (1 - 3 * Time.deltaTime);// move closer
                     }
                 }
                 else if (controller == leftController)
                 {
                     if (OVRInput.Get(OVRInput.RawButton.LThumbstickUp))
                     {
-                        currentObj.transform.localPosition *= (1 + 10 * Time.deltaTime);
+                        currentObj.transform.localPosition *= (1 + 3 * Time.deltaTime);
                     }
                     else if (OVRInput.Get(OVRInput.RawButton.LThumbstickDown))
                     {
-                        currentObj.transform.localPosition *= (1 - 10 * Time.deltaTime);
+                        currentObj.transform.localPosition *= (1 - 3 * Time.deltaTime);
                     }
                 }
 
@@ -383,6 +395,14 @@ public class RayCtrl : MonoBehaviour
                 selected = true;
                 GameObject theIndicatorBall = Instantiate(indicatorBall, hit.point,Quaternion.identity);
                 Destroy(theIndicatorBall, 0.02f);
+
+                // camare stuff
+                birdCam.enabled = true;
+                birdCamDisplay.SetActive(true);
+                birdCam.transform.rotation = Quaternion.Euler(90, 90, 90);  // make it point down
+                birdCam.transform.parent = theIndicatorBall.transform;
+                birdCam.transform.localPosition = new Vector3(0, 2, 0);
+
             }
  
         }
