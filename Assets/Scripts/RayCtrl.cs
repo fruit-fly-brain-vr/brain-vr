@@ -1,6 +1,8 @@
+using System;
 using Meta.WitAi;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// 
@@ -13,14 +15,20 @@ public class RayCtrl : MonoBehaviour
     public GameObject leftController;
     public GameObject rightController;
     public GameObject userRig;
+    public GameObject leftClipper;
+    public GameObject rightClipper;
 
     public Material highlightMat;
     public Material lineMat;
+    public Material clipMat;
+
     public GameObject leftToolMenu;
     public GameObject rightToolMenu;
     public GameObject pinpointDisplay;
     public GameObject indicatorBall;
     public TextMeshPro pinpointDisplayMsg;
+    public GameObject instructionPanel;
+    public TextMeshProUGUI instructionMsg;
     public GameObject modePanel;
     public TextMeshProUGUI modeMsg;
   
@@ -37,6 +45,7 @@ public class RayCtrl : MonoBehaviour
     private bool pinpointSelectMode = false;                                    
     private bool singleRayGrabCloseFarMode = false; // this is a tool whose menu is on the right controller
     private bool singleRayDepthCamMode = false;
+    private bool sliceMode = false;
     private bool right_index = false;
     private bool right_hand = false;
     private bool left_index = false;
@@ -44,6 +53,7 @@ public class RayCtrl : MonoBehaviour
     private float twoPointDistance = 0;
     private bool leftToolMenuOpen = false;
     private bool rightToolMenuOpen = false;
+
 
     void Start()
     {
@@ -53,6 +63,8 @@ public class RayCtrl : MonoBehaviour
         modePanel.SetActive(false);
         birdCamDisplay.SetActive(false);
         birdCam.enabled = false;
+        leftClipper.SetActive(false);
+        rightClipper.SetActive(false);
     } 
 
     void Update()
@@ -107,7 +119,9 @@ public class RayCtrl : MonoBehaviour
                 leftToolMenuOpen = false;
                 singleRayGrabCloseFarMode = false;
                 singleRayDepthCamMode = false;
+                sliceMode = false;
                 ShowModeMsg("Single Ray Select");
+                ShowInstructionMsg("...insert rule for this mode here...");
             }
             else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstickLeft))
             {
@@ -117,7 +131,9 @@ public class RayCtrl : MonoBehaviour
                 leftToolMenuOpen = false;
                 singleRayGrabCloseFarMode = false;
                 singleRayDepthCamMode = false;
+                sliceMode = false;
                 ShowModeMsg("3D Select (pinpoint)");
+                ShowInstructionMsg("...insert rule for this mode here...");
             }
             else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstickRight))
             {
@@ -127,7 +143,9 @@ public class RayCtrl : MonoBehaviour
                 leftToolMenuOpen = false;
                 singleRayGrabCloseFarMode = false;
                 singleRayDepthCamMode = false;
+                sliceMode = false;
                 ShowModeMsg("2 Ray Drag Zoom");
+                ShowInstructionMsg("...insert rule for this mode here...");
             }
         }
         else if (rightToolMenuOpen) {
@@ -139,7 +157,9 @@ public class RayCtrl : MonoBehaviour
                 twoRayDragZoomMode = false;
                 rightToolMenuOpen = false;
                 singleRayDepthCamMode = false;
+                sliceMode = false;
                 ShowModeMsg("Single Ray Grab and Move Close or Far"); // need better name
+                ShowInstructionMsg("...insert rule for this mode here...");
             }
             else if (OVRInput.GetDown(OVRInput.RawButton.RThumbstickLeft))
             {
@@ -149,13 +169,26 @@ public class RayCtrl : MonoBehaviour
                 twoRayDragZoomMode = false;
                 rightToolMenuOpen = false;
                 singleRayGrabCloseFarMode = false;
+                sliceMode = false;
                 ShowModeMsg("Single Ray Depth Move Camera)");
+                ShowInstructionMsg("...insert rule for this mode here...");
+            }
+            else if (OVRInput.GetDown(OVRInput.RawButton.RThumbstickRight))
+            {
+                sliceMode = true;
+                twoRayDragZoomMode = false;
+                singleRayGrabZoomMode = false;
+                pinpointSelectMode = false;
+                rightToolMenuOpen = false;
+                singleRayGrabCloseFarMode = false;
+                singleRayDepthCamMode = false;
+                ShowModeMsg("Slicer");
+                ShowInstructionMsg("Hold both triggers on either controller and move to slice");
             }
 
         }
 
     }
-
 
 
 
@@ -191,13 +224,18 @@ public class RayCtrl : MonoBehaviour
         {
             SingleRayGrabCloseFar();
         }
-        else if (singleRayDepthCamMode) {
+        else if (singleRayDepthCamMode)
+        {
             SingleRayDepthCam();
+        }
+        else if (sliceMode) {
+            Slice();
         }
         else
         {
             // these are just extra protection, probably not nessary
             selected = false;
+            ShowInstructionMsg("Interaction Demo open Left/Right Tool Menu by\n pressing Left/Right Thunbstick");
         }
 
     }
@@ -208,7 +246,12 @@ public class RayCtrl : MonoBehaviour
         modePanel.SetActive(true);
         modeMsg.text = theMsg;
     }
-
+    // this method updates the displayed message and instruction
+    void ShowInstructionMsg(string theMsg)
+    {
+        instructionPanel.SetActive(true);
+        instructionMsg.text = theMsg;
+    }
 
     /// <summary>
     /// Below this line is strictly interaction methods
@@ -220,7 +263,6 @@ public class RayCtrl : MonoBehaviour
     // move thumbstick up and down to scale up and down (zoom)
     void SingleRayGrabZoom()
     {
-
         if (right_index & right_hand)
         {
             SingleRayGrabZoomEachHand(rightController);
@@ -530,12 +572,10 @@ public class RayCtrl : MonoBehaviour
                     if (OVRInput.Get(OVRInput.RawButton.LThumbstickUp) | OVRInput.Get(OVRInput.RawButton.RThumbstickUp))
                     {
                         birdCam.transform.position += 3 * Time.deltaTime * Vector3.up;
-                        ShowModeMsg(System.DateTime.Now.ToString());
                     }
                     else if (OVRInput.Get(OVRInput.RawButton.LThumbstickDown) | OVRInput.Get(OVRInput.RawButton.RThumbstickDown))
                     {
                         birdCam.transform.position += 3 * Time.deltaTime * Vector3.down;
-                        ShowModeMsg(System.DateTime.Now.ToString());
                     }
 
                     pinpointDisplayMsg.text = "camera position:\n"+
@@ -562,10 +602,50 @@ public class RayCtrl : MonoBehaviour
 
     }
 
+    // slice mode stuff
+    // want to allow both hands to slice at the same time
+    void Slice()
+    {
+        if (right_index & right_hand)
+        {
+            if (!rightClipper.activeSelf)
+            {
+                rightClipper.SetActive(true);
+                rightClipper.transform.SetLocalPositionAndRotation(rightController.transform.position, rightController.transform.rotation);
+                rightClipper.transform.parent = rightController.transform;
+            }
+        }
+        else
+        {
+            rightClipper.transform.parent = null;
+            rightClipper.SetActive(false);
+        }
+        if (left_index & left_hand)
+        {
+            if (!leftClipper.activeSelf)
+            {
+                leftClipper.SetActive(true);
+                leftClipper.transform.SetLocalPositionAndRotation(leftController.transform.position, leftController.transform.rotation);
+                leftClipper.transform.parent = leftController.transform;
+            }
+        }
+        else
+        {
+            leftClipper.transform.parent = null;
+            leftClipper.SetActive(false);
+            // the plane under the clipper is not disabled somehow...
+        }
+
+    }
+
+
     // pull trigger to shoot ray
     void IndexTriggerRay() {
-        if (right_index) VisualizeRay(rightController);
-        if (left_index) VisualizeRay(leftController);
+        if (!sliceMode)
+        {
+            if (right_index) VisualizeRay(rightController);
+            if (left_index) VisualizeRay(leftController);
+        }
     }
 
     //visualize the ray, 0.5m long laser, 3m ray
