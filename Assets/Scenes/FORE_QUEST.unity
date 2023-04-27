@@ -960,7 +960,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 591956849}
-  - component: {fileID: 591956848}
   - component: {fileID: 591956850}
   m_Layer: 0
   m_Name: UserController
@@ -969,24 +968,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &591956848
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 591956847}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0fbe4746e20504654b939fcb31dce213, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  leftController: {fileID: 741593458}
-  rightController: {fileID: 1696640770}
-  highlightMat: {fileID: 2100000, guid: 985ca196e93bb40a2b2bbf0a5b17f0ae, type: 2}
-  instructionPanel: {fileID: 492699055}
-  instructionMsg: {fileID: 717243385}
-  restartPanel: {fileID: 220941109}
 --- !u!4 &591956849
 Transform:
   m_ObjectHideFlags: 0
@@ -1030,6 +1011,7 @@ MonoBehaviour:
   rightToolMenu: {fileID: 617136983}
   pinpointDisplay: {fileID: 1524268507}
   indicatorBall: {fileID: 5797164916715797624, guid: c4ea0915903374db58451c5e87db2a2f, type: 3}
+  restartPanel: {fileID: 220941109}
   pinpointDisplayMsg: {fileID: 1093515028}
   instructionPanel: {fileID: 492699055}
   instructionMsg: {fileID: 717243385}
@@ -44065,7 +44047,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh82442
+  m_Name: pb_Mesh98358
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -86484,7 +86466,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh82294
+  m_Name: pb_Mesh98210
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
