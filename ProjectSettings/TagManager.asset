@@ -13,6 +13,8 @@ TagManager:
   - boulder3
   - club
   - rightLine
+  - Neuropil
+  - Neuron
   layers:
   - Default
   - TransparentFX

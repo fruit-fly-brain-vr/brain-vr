@@ -22,7 +22,7 @@ public class MasterCtrl : MonoBehaviour
     public GameObject imDrone;
     public GameObject miniMap;
     public GameObject birdCamDisplay;
-    public GameObject eb;
+    public GameObject brainModel;
 
     public Camera birdCam;
 
@@ -327,6 +327,7 @@ public class MasterCtrl : MonoBehaviour
             selected = false;
             currentObj.transform.parent = null;
             currentObj = null;
+            pinpointDisplay.SetActive(false);
         }
     }
     void SingleRayGrabZoomEachHand(GameObject controller)
@@ -335,11 +336,15 @@ public class MasterCtrl : MonoBehaviour
         if (Physics.Raycast(controller.transform.position, controller.transform.forward, out RaycastHit hit, 3))
         {
             // lock on, and maintail until drop 
-            if (hit.transform.gameObject.CompareTag("ball"))
+            if (hit.transform.parent.gameObject.CompareTag("Neuron"))
             {
                 selected = true;
-                currentObj = hit.transform.gameObject;
+                currentObj = brainModel;
                 currentObj.transform.parent = controller.transform;
+
+                pinpointDisplay.SetActive(true);
+                pinpointDisplayMsg.text = hit.transform.parent.name;
+                pinpointDisplay.transform.SetLocalPositionAndRotation(hit.point, Quaternion.Euler(0f, userRig.transform.rotation.eulerAngles.y, 0f));
 
                 GameObject theIndicatorBall = Instantiate(indicatorBall, hit.point, Quaternion.identity);
                 Destroy(theIndicatorBall, 0.02f);
@@ -394,6 +399,7 @@ public class MasterCtrl : MonoBehaviour
             selected = false;
             currentObj.transform.parent = null;
             currentObj = null;
+            pinpointDisplay.SetActive(false);
         }
     }
     void SingleRayGrabCloseFarEachHand(GameObject controller)
@@ -401,11 +407,15 @@ public class MasterCtrl : MonoBehaviour
         if (Physics.Raycast(controller.transform.position, controller.transform.forward, out RaycastHit hit, 3))
         {
             // lock on, and maintail until drop 
-            if (hit.transform.gameObject.CompareTag("ball"))
+            if (hit.transform.parent.gameObject.CompareTag("Neuron"))
             {
                 selected = true;
-                currentObj = hit.transform.gameObject;
+                currentObj = brainModel;
                 currentObj.transform.parent = controller.transform;
+
+                pinpointDisplay.SetActive(true);
+                pinpointDisplayMsg.text = hit.transform.parent.name;
+                pinpointDisplay.transform.SetLocalPositionAndRotation(hit.point, Quaternion.Euler(0f, userRig.transform.rotation.eulerAngles.y, 0f));
 
                 GameObject theIndicatorBall = Instantiate(indicatorBall, hit.point, Quaternion.identity);
                 Destroy(theIndicatorBall, 0.02f);
@@ -558,8 +568,8 @@ public class MasterCtrl : MonoBehaviour
         pinpointDisplayMsg.text = "Camera Depth " + ib.transform.localPosition.z.ToString("F2") + "m\n" +
             "Camera Height " + birdCam.transform.localPosition.y.ToString("F2") + "m";
 
-        Vector3 babyIbPos = ib.transform.position-eb.transform.position;
-        float babyIbScale = miniMap.transform.lossyScale.magnitude/eb.transform.lossyScale.magnitude;
+        Vector3 babyIbPos = ib.transform.position-brainModel.transform.position;
+        float babyIbScale = miniMap.transform.lossyScale.magnitude/brainModel.transform.lossyScale.magnitude;
         GameObject theBabyIndicatorBall = Instantiate(indicatorBall, miniMap.transform.position+babyIbPos*babyIbScale, Quaternion.identity);
         //theBabyIndicatorBall.transform.localScale *= babyIbScale;
         Destroy(theBabyIndicatorBall, 0.02f);
@@ -579,7 +589,7 @@ public class MasterCtrl : MonoBehaviour
             Physics.Raycast(rightController.transform.position, rightController.transform.forward, out RaycastHit hitR, 3))
             {
 
-                if (hitL.transform.gameObject.CompareTag("ball") & hitR.transform.gameObject.CompareTag("ball"))
+                if (hitL.transform.parent.gameObject.CompareTag("Neuron"))
                 {
                     GameObject leftIndicatorBall = Instantiate(indicatorBall, hitL.point, Quaternion.identity);
                     GameObject rightIndicatorBall = Instantiate(indicatorBall, hitR.point, Quaternion.identity);
@@ -592,7 +602,7 @@ public class MasterCtrl : MonoBehaviour
                         selected = true;
 
                     }
-                    currentObj = hitL.transform.gameObject;
+                    currentObj = brainModel;
 
                     if (selected & twoPointDistance > 0)
                     {
@@ -804,8 +814,8 @@ public class MasterCtrl : MonoBehaviour
                     "drone scale:" +
                         imDrone.transform.localScale.x.ToString("F3");
 
-        Vector3 babyDroneIbPos = imDrone.transform.position - eb.transform.position;
-        float babyDroneIbScale = miniMap.transform.lossyScale.magnitude / eb.transform.lossyScale.magnitude;
+        Vector3 babyDroneIbPos = imDrone.transform.position - brainModel.transform.position;
+        float babyDroneIbScale = miniMap.transform.lossyScale.magnitude / brainModel.transform.lossyScale.magnitude;
         GameObject theBabyDoneIndicatorBall = Instantiate(indicatorBall, miniMap.transform.position + babyDroneIbPos * babyDroneIbScale, Quaternion.identity);
         //theBabyIndicatorBall.transform.localScale *= babyIbScale;
         Destroy(theBabyDoneIndicatorBall, 0.02f);
