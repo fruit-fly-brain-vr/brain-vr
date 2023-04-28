@@ -1,4 +1,5 @@
 using System;
+using System.Xml.Linq;
 using Meta.WitAi;
 using TMPro;
 using UnityEngine;
@@ -62,7 +63,9 @@ public class MasterCtrl : MonoBehaviour
     private bool selected = false; // this is an flag set true when object is being manipuated by some tool
     private bool isDrone = false;
     private bool isRestart = false;
-    private float twoPointDistance = 0;
+    private Vector3 preManipulationScale = Vector3.one;
+    private Vector3 preManipulationPos = Vector3.one;
+    private Quaternion preManipulationRot = Quaternion.identity;
     private Vector3 preDronePos = Vector3.one;
     private Quaternion preDroneRot = Quaternion.identity;
 
@@ -173,7 +176,7 @@ public class MasterCtrl : MonoBehaviour
                 droneMode = false;
 
                 leftToolMenuOpen = false;
-                ShowModeMsg("2 Ray Drag Zoom");
+                ShowModeMsg("Select neuropil/neuron to add");
                 ShowInstructionMsg("...insert rule for this mode here...");//todo: add rule
             }
         }
@@ -229,13 +232,13 @@ public class MasterCtrl : MonoBehaviour
     /// BELOW THIS LINE ARE METHODS FOR INTERACTION TOOLS
     /// </summary>
 
+
     void TriggerListener()
     {
         right_index = OVRInput.Get(OVRInput.RawAxis1D.RIndexTrigger) > 0.9f;
         right_hand = OVRInput.Get(OVRInput.RawAxis1D.RHandTrigger) > 0.9f;
         left_index = OVRInput.Get(OVRInput.RawAxis1D.LIndexTrigger) > 0.9f;
         left_hand = OVRInput.Get(OVRInput.RawAxis1D.LHandTrigger) > 0.9f;
-
     }
     void ModeListener()
     {
@@ -303,7 +306,6 @@ public class MasterCtrl : MonoBehaviour
             isRestart = false;
             restartPanel.SetActive(false);
         }
-
     }
 
     //TODO: allow adding and removing models
@@ -339,13 +341,12 @@ public class MasterCtrl : MonoBehaviour
     }
     void SingleRaySelectEachHand(GameObject controller)
     {
-        if (Physics.Raycast(controller.transform.position, controller.transform.forward, out RaycastHit hit, 3))
+        if (Physics.Raycast(controller.transform.position, controller.transform.forward, out RaycastHit hit, 5))
         {
             // lock on, and maintail until drop 
             if (hit.transform.parent.gameObject.CompareTag("Neuron"))
             {
                 selected = true;
- 
                 pinpointDisplay.SetActive(true);
                 pinpointDisplayMsg.text = hit.transform.parent.name;
                 pinpointDisplay.transform.SetLocalPositionAndRotation(hit.point, Quaternion.Euler(0f, userRig.transform.rotation.eulerAngles.y, 0f));
@@ -372,7 +373,7 @@ public class MasterCtrl : MonoBehaviour
             SingleRayManipulationEachHand(leftController);
         }
         else
-        {
+        { 
             selected = false;
             currentObj.transform.parent = null;
             currentObj = null;
@@ -380,15 +381,17 @@ public class MasterCtrl : MonoBehaviour
     }
     void SingleRayManipulationEachHand(GameObject controller)
     {
-        if (Physics.Raycast(controller.transform.position, controller.transform.forward, out RaycastHit hit, 3))
+        if (Physics.Raycast(controller.transform.position, controller.transform.forward, out RaycastHit hit, 5))
         {
-            // lock on, and maintail until drop 
-            if (hit.transform.parent.gameObject.CompareTag("Neuron"))
+            if (hit.transform.parent.gameObject.CompareTag("Neuron") & !selected)
             {
                 selected = true;
                 currentObj = brainModel;
                 currentObj.transform.parent = controller.transform;
-
+                preManipulationPos = currentObj.transform.position;
+                preManipulationRot = currentObj.transform.rotation;
+                preManipulationScale = currentObj.transform.localScale;
+                
                 GameObject theIndicatorBall = Instantiate(indicatorBall, hit.point, Quaternion.identity);
                 Destroy(theIndicatorBall, 0.02f);
             }
@@ -397,6 +400,7 @@ public class MasterCtrl : MonoBehaviour
         {
             if (controller == rightController)
             {
+                // move up close far
                 if (OVRInput.Get(OVRInput.RawButton.RThumbstickUp))
                 {
                     currentObj.transform.localPosition *= (1 + 1 * Time.deltaTime);//move further
@@ -405,17 +409,36 @@ public class MasterCtrl : MonoBehaviour
                 {
                     currentObj.transform.localPosition *= (1 - 1 * Time.deltaTime);// move closer
                 }
-
-                else if (OVRInput.Get(OVRInput.RawButton.LThumbstickUp))
-                {
-                    currentObj.transform.localScale = Vector3.Lerp(currentObj.transform.localScale,
-                        currentObj.transform.localScale * (1 + 10 * Time.deltaTime), 0.1f);
-                }
-                else if (OVRInput.Get(OVRInput.RawButton.LThumbstickDown))
+                // scale large small
+                else if (OVRInput.Get(OVRInput.RawButton.RThumbstickLeft))
                 {
                     currentObj.transform.localScale = Vector3.Lerp(currentObj.transform.localScale,
                         currentObj.transform.localScale * (1 - 10 * Time.deltaTime), 0.1f);
                 }
+                else if (OVRInput.Get(OVRInput.RawButton.RThumbstickRight))
+                {
+                    currentObj.transform.localScale = Vector3.Lerp(currentObj.transform.localScale,
+                        currentObj.transform.localScale * (1 + 10 * Time.deltaTime), 0.1f);
+                }
+                //rotate 
+                else if (OVRInput.Get(OVRInput.RawButton.LThumbstickUp))
+                {
+                    currentObj.transform.RotateAround(currentObj.transform.position, transform.right, -30 * Time.deltaTime);
+                }
+                else if (OVRInput.Get(OVRInput.RawButton.LThumbstickDown))
+                {
+                    currentObj.transform.RotateAround(currentObj.transform.position, transform.right, 30 * Time.deltaTime);
+                }
+                else if (OVRInput.Get(OVRInput.RawButton.LThumbstickLeft))
+                {
+                    currentObj.transform.RotateAround(currentObj.transform.position, transform.up, -30 * Time.deltaTime);
+                }
+                else if (OVRInput.Get(OVRInput.RawButton.LThumbstickRight))
+                {
+                    currentObj.transform.RotateAround(currentObj.transform.position, transform.up, 30 * Time.deltaTime);
+
+                }
+
             }
             else if (controller == leftController)
             {
@@ -428,18 +451,47 @@ public class MasterCtrl : MonoBehaviour
                     currentObj.transform.localPosition *= (1 - 1 * Time.deltaTime);
                 }
 
-                else if (OVRInput.Get(OVRInput.RawButton.RThumbstickUp))
-                {
-                    currentObj.transform.localScale = Vector3.Lerp(currentObj.transform.localScale,
-                        currentObj.transform.localScale * (1 + 10 * Time.deltaTime), 0.1f);
-                }
-                else if (OVRInput.Get(OVRInput.RawButton.RThumbstickDown))
+                else if (OVRInput.Get(OVRInput.RawButton.LThumbstickUp))
                 {
                     currentObj.transform.localScale = Vector3.Lerp(currentObj.transform.localScale,
                         currentObj.transform.localScale * (1 - 10 * Time.deltaTime), 0.1f);
                 }
+                else if (OVRInput.Get(OVRInput.RawButton.LThumbstickDown))
+                {
+                    currentObj.transform.localScale = Vector3.Lerp(currentObj.transform.localScale,
+                        currentObj.transform.localScale * (1 + 10 * Time.deltaTime), 0.1f);
+                }
+                else if (OVRInput.Get(OVRInput.RawButton.RThumbstickUp))
+                {
+                    currentObj.transform.RotateAround(currentObj.transform.position, transform.right, -30 * Time.deltaTime);
+                }
+                else if (OVRInput.Get(OVRInput.RawButton.RThumbstickDown))
+                {
+                    currentObj.transform.RotateAround(currentObj.transform.position, transform.right, 30 * Time.deltaTime);
+                }
+                else if (OVRInput.Get(OVRInput.RawButton.RThumbstickLeft))
+                {
+                    currentObj.transform.RotateAround(currentObj.transform.position, transform.up, -30 * Time.deltaTime);
+                }
+                else if (OVRInput.Get(OVRInput.RawButton.RThumbstickRight))
+                {
+                    currentObj.transform.RotateAround(currentObj.transform.position, transform.up, 30 * Time.deltaTime);
+
+                }
+            }
+
+            if (OVRInput.Get(OVRInput.RawButton.X))
+            {
+                currentObj.transform.localScale = preManipulationScale;
+                currentObj.transform.SetPositionAndRotation(preManipulationPos, preManipulationRot);
             }
         }
+        ShowModeMsg("model position:" +
+                currentObj.transform.position.x.ToString("F3") + ", " +
+                currentObj.transform.position.y.ToString("F3") + ", " +
+                currentObj.transform.position.z.ToString("F3") + "\n" +
+            "model scale:" +
+                currentObj.transform.lossyScale.x.ToString("F3"));
     }
 
 
@@ -564,12 +616,11 @@ public class MasterCtrl : MonoBehaviour
         pinpointDisplayMsg.text = "Camera Depth " + ib.transform.localPosition.z.ToString("F2") + "m\n" +
             "Camera Height " + birdCam.transform.localPosition.y.ToString("F2") + "m";
 
-        Vector3 babyIbPos = ib.transform.position-brainModel.transform.position;
-        float babyIbScale = miniMap.transform.lossyScale.magnitude/brainModel.transform.lossyScale.magnitude;
-        GameObject theBabyIndicatorBall = Instantiate(minimapIndicatorBall, miniMap.transform.position+babyIbPos*babyIbScale, Quaternion.identity);
-        //theBabyIndicatorBall.transform.localScale *= babyIbScale;
+        Vector3 babyIbPos = brainModel.transform.InverseTransformPoint(ib.transform.position);
+        GameObject theBabyIndicatorBall = Instantiate(minimapIndicatorBall, miniMap.transform.position, Quaternion.identity);
+        theBabyIndicatorBall.transform.parent = miniMap.transform;
+        theBabyIndicatorBall.transform.localPosition = babyIbPos;
         Destroy(theBabyIndicatorBall, 0.02f);
-
     }
 
 
@@ -604,7 +655,7 @@ public class MasterCtrl : MonoBehaviour
         {
             leftClipper.transform.parent = null;
             leftClipper.SetActive(false);
-            // the plane under the clipper is not disabled somehow...
+            // todo: the plane under the clipper is not disabled somehow...
         }
     }
 
@@ -625,13 +676,14 @@ public class MasterCtrl : MonoBehaviour
             preDronePos = imDrone.transform.position;
             preDroneRot = imDrone.transform.rotation;
             dronePanel.SetActive(true);
+
+            miniMap.SetActive(true);
+            miniMap.transform.SetPositionAndRotation(leftController.transform.position + new Vector3(0, 0.1f * imDrone.transform.localScale.magnitude, 0), leftController.transform.rotation); ;
+            miniMap.transform.parent = leftController.transform;
         }
         else
         {
             OperateDrone();
-            miniMap.SetActive(true);
-            miniMap.transform.SetPositionAndRotation(leftController.transform.position + new Vector3(0, 0.1f * imDrone.transform.localScale.magnitude, 0), leftController.transform.rotation); ;
-            miniMap.transform.parent = leftController.transform;
 
             if ((OVRInput.Get(OVRInput.RawButton.X)))
             {
@@ -641,12 +693,12 @@ public class MasterCtrl : MonoBehaviour
                 isDrone = false;
                 droneMode = false;
                 dronePanel.SetActive(false);
-            }
-            
+            }   
         }
     }
     void OperateDrone()
     {
+        // TODO: adjust flying speed to size?
         //move up and down
         if (OVRInput.Get(OVRInput.RawButton.LThumbstickUp))
         {
@@ -704,10 +756,11 @@ public class MasterCtrl : MonoBehaviour
                     "drone scale:" +
                         imDrone.transform.localScale.x.ToString("F3");
 
-        Vector3 babyDroneIbPos = imDrone.transform.position - brainModel.transform.position;
-        float babyDroneIbScale = miniMap.transform.lossyScale.magnitude / brainModel.transform.lossyScale.magnitude;
-        GameObject theBabyDoneIndicatorBall = Instantiate(minimapIndicatorBall, miniMap.transform.position + babyDroneIbPos * babyDroneIbScale, Quaternion.identity);
-        //theBabyIndicatorBall.transform.localScale *= babyIbScale;
+        Vector3 babyDroneIbPos = brainModel.transform.InverseTransformPoint(imDrone.transform.position);
+        GameObject theBabyDoneIndicatorBall = Instantiate(minimapIndicatorBall, miniMap.transform.position, Quaternion.identity);
+        theBabyDoneIndicatorBall.transform.parent = miniMap.transform;
+        theBabyDoneIndicatorBall.transform.localPosition = babyDroneIbPos;
+        theBabyDoneIndicatorBall.transform.localScale = imDrone.transform.localScale*10;
         Destroy(theBabyDoneIndicatorBall, 0.02f);
 
     }
@@ -800,7 +853,7 @@ public class MasterCtrl : MonoBehaviour
     //        Destroy(rr.GetComponent<MeshRenderer>());
     //        rr.tag = "rightLine";
 
-    //        if (Physics.Raycast(leftController.transform.position, leftController.transform.forward, out RaycastHit hit, 3))
+    //        if (Physics.Raycast(leftController.transform.position, leftController.transform.forward, out RaycastHit hit, 5))
     //        {
     //            if (hit.transform.gameObject.CompareTag("rightLine"))
     //            {

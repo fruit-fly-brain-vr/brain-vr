@@ -67,12 +67,11 @@ Shader "ClippingPlaneShader_old"{
             float facing = i.facing * 0.5 + 0.5;
 
             //normal color stuff
-            fixed4 col = tex2D(_MainTex, i.uv_MainTex);
-            col *= _Color;
+            fixed4 col = _Color;
             o.Albedo = col.rgb * facing;
-            o.Metallic = _Metallic * facing;
-            o.Smoothness = _Smoothness * facing;
-            o.Emission = lerp(_CutoffColor, _Emission, facing);
+            //o.Metallic = _Metallic * facing;
+            //o.Smoothness = _Smoothness * facing;
+            //o.Emission = lerp(_CutoffColor, _Emission, facing);
         }
         ENDCG
     }
