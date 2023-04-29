@@ -1,13 +1,10 @@
-Shader "ClippingPlaneShader_old"{
+Shader "NeuronClippableShader"{
     //show values to edit in inspector
     Properties{
-        _Color ("Tint", Color) = (0, 0, 0, 1)
+        _Color ("Neuron_Color", Color) = (0, 0, 0, 1)
         _MainTex ("Texture", 2D) = "white" {}
-        _Smoothness ("Smoothness", Range(0, 1)) = 0
-        _Metallic ("Metalness", Range(0, 1)) = 0
-        [HDR]_Emission ("Emission", color) = (0,0,0)
-
-        [HDR]_CutoffColor("Cutoff Color", Color) = (0,0,0,0)
+        //[HDR]_Emission ("Cutoff_Color", color) = (0,0,0,0)
+        [HDR]_CutoffColor ("Cutoff Color", color) = (0,0,0,0)
     }
 
     SubShader{
@@ -28,16 +25,10 @@ Shader "ClippingPlaneShader_old"{
 
         sampler2D _MainTex;
         fixed4 _Color;
-
-        half _Smoothness;
-        half _Metallic;
-        half3 _Emission;
-
-        //float4 _Plane;
-        float4 _PlaneLeft;////
-        float4 _PlaneRight;///
-
         float4 _CutoffColor;
+
+        float4 _PlaneLeft;
+        float4 _PlaneRight;
 
         //input struct which is automatically filled by unity
         struct Input {
@@ -48,13 +39,6 @@ Shader "ClippingPlaneShader_old"{
 
         //the surface shader function which sets parameters the lighting function then uses
         void surf (Input i, inout SurfaceOutputStandard o) {
-            //calculate signed distance to plane
-            //float distance = dot(i.worldPos, _Plane.xyz);
-            //distance = distance + _Plane.w;
-            //discard surface above plane
-            //clip(-distance); 
-
-
        ////
             float distanceLeft = dot(i.worldPos, _PlaneLeft.xyz);
             distanceLeft = distanceLeft + _PlaneLeft.w;
@@ -69,9 +53,7 @@ Shader "ClippingPlaneShader_old"{
             //normal color stuff
             fixed4 col = _Color;
             o.Albedo = col.rgb * facing;
-            //o.Metallic = _Metallic * facing;
-            //o.Smoothness = _Smoothness * facing;
-            //o.Emission = lerp(_CutoffColor, _Emission, facing);
+            o.Emission = _CutoffColor;
         }
         ENDCG
     }

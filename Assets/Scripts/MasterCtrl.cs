@@ -25,10 +25,7 @@ public class MasterCtrl : MonoBehaviour
     public GameObject birdCamDisplay;
     public GameObject brainModel;
 
-    public Camera birdCam;
-
-    public Material highlightMat;
-    public Material lineMat;
+    public Camera birdCam; // todo: mayber change birdcam to either from facing config or the three camera cube
 
     // UI elements
     public GameObject leftToolMenu;
@@ -45,7 +42,6 @@ public class MasterCtrl : MonoBehaviour
     public GameObject dronePanel;
     public TextMeshProUGUI droneMsg;
 
-
     // bools related to tool modes
     private bool leftToolMenuOpen = false;
     private bool rightToolMenuOpen = false;
@@ -56,13 +52,17 @@ public class MasterCtrl : MonoBehaviour
     private bool modelLoadingMode = false;
     private bool droneMode = false;
 
-
-    // helper var for tool use
-    private GameObject currentObj; // the object currently registered for selection
-    private GameObject cameraIndicatorBall = null; // this object is only used for single ray move camera; can't find a way around it
+    // helper var for tool use  
     private bool selected = false; // this is an flag set true when object is being manipuated by some tool
     private bool isDrone = false;
     private bool isRestart = false;
+    private bool droneToggledPassthrough = false;
+    public Material highlightMat;
+    public Material lineMat;
+    private GameObject cameraIndicatorBall = null; // this object is only used for single ray move camera; can't find a way around it
+
+    // state storage var
+    private GameObject currentObj; // the object currently registered for selection
     private Vector3 preManipulationScale = Vector3.one;
     private Vector3 preManipulationPos = Vector3.one;
     private Quaternion preManipulationRot = Quaternion.identity;
@@ -78,6 +78,7 @@ public class MasterCtrl : MonoBehaviour
 
     void Start()
     {
+        //todo: update the initial instruction msg once we have model loading function
         ShowInstructionMsg("Interaction Demo open Left/Right Tool Menu by\n pressing Left/Right Thunbstick");
         leftToolMenu.SetActive(false);
         rightToolMenu.SetActive(false);
@@ -99,37 +100,40 @@ public class MasterCtrl : MonoBehaviour
         OpenMenu();
         ModeListener();
         Restart();
+        BackgroundToggle();
     }
-
 
     // make both left and right tool menus
     void OpenMenu()
     {
-        leftToolMenu.SetActive(leftToolMenuOpen);
-        rightToolMenu.SetActive(rightToolMenuOpen);
-        if (leftToolMenuOpen)
+        if (!isDrone) //should not open other tools when you are in drone mode
         {
-            SelectTool();
-        }
-        else if (rightToolMenuOpen)
-        {
-            SelectTool();
-        }
-        else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstick))
-        {
-            leftToolMenuOpen = true;
-            rightToolMenuOpen = false;
-            modePanel.SetActive(false);
-            leftToolMenu.transform.SetPositionAndRotation(leftController.transform.position, leftController.transform.rotation);
-            leftToolMenu.transform.parent = leftController.transform;
-        }
-        else if (OVRInput.GetDown(OVRInput.RawButton.RThumbstick))
-        {
-            rightToolMenuOpen = true;
-            leftToolMenuOpen = false;
-            modePanel.SetActive(false);
-            rightToolMenu.transform.SetPositionAndRotation(rightController.transform.position, rightController.transform.rotation);
-            rightToolMenu.transform.parent = rightController.transform;
+            leftToolMenu.SetActive(leftToolMenuOpen);
+            rightToolMenu.SetActive(rightToolMenuOpen);
+            if (leftToolMenuOpen)
+            {
+                SelectTool();
+            }
+            else if (rightToolMenuOpen)
+            {
+                SelectTool();
+            }
+            else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstick))
+            {
+                leftToolMenuOpen = true;
+                rightToolMenuOpen = false;
+                modePanel.SetActive(false);
+                leftToolMenu.transform.SetPositionAndRotation(leftController.transform.position, leftController.transform.rotation);
+                leftToolMenu.transform.parent = leftController.transform;
+            }
+            else if (OVRInput.GetDown(OVRInput.RawButton.RThumbstick))
+            {
+                rightToolMenuOpen = true;
+                leftToolMenuOpen = false;
+                modePanel.SetActive(false);
+                rightToolMenu.transform.SetPositionAndRotation(rightController.transform.position, rightController.transform.rotation);
+                rightToolMenu.transform.parent = rightController.transform;
+            }
         }
 
     }
@@ -308,7 +312,26 @@ public class MasterCtrl : MonoBehaviour
         }
     }
 
+    void BackgroundToggle()
+    {
+        if (!droneMode) // should not toggle in drone mode, must disable passthrough in drone mode
+        {
+            if (OVRInput.GetDown(OVRInput.RawButton.B) & !droneMode)
+            {
+                if (OVRManager.instance.isInsightPassthroughEnabled)
+                {
+                    OVRManager.instance.isInsightPassthroughEnabled = false;
+                }
+                else
+                {
+                    OVRManager.instance.isInsightPassthroughEnabled = true;
+                }
+            }
+        }
+    }
+
     //TODO: allow adding and removing models
+    //TODO: now it is accessible on the tool menu, tho at the begining of the game we should also the model selection model
     void LoadModels() {
 
     }
@@ -341,7 +364,7 @@ public class MasterCtrl : MonoBehaviour
     }
     void SingleRaySelectEachHand(GameObject controller)
     {
-        if (Physics.Raycast(controller.transform.position, controller.transform.forward, out RaycastHit hit, 5))
+        if (Physics.Raycast(controller.transform.position, controller.transform.forward, out RaycastHit hit, 6))
         {
             // lock on, and maintail until drop 
             if (hit.transform.parent.gameObject.CompareTag("Neuron"))
@@ -376,12 +399,12 @@ public class MasterCtrl : MonoBehaviour
         { 
             selected = false;
             currentObj.transform.parent = null;
-            currentObj = null;
+            //currentObj = null;// this was the line causing the bug
         }
     }
     void SingleRayManipulationEachHand(GameObject controller)
     {
-        if (Physics.Raycast(controller.transform.position, controller.transform.forward, out RaycastHit hit, 5))
+        if (Physics.Raycast(controller.transform.position, controller.transform.forward, out RaycastHit hit, 6))
         {
             if (hit.transform.parent.gameObject.CompareTag("Neuron") & !selected)
             {
@@ -436,9 +459,7 @@ public class MasterCtrl : MonoBehaviour
                 else if (OVRInput.Get(OVRInput.RawButton.LThumbstickRight))
                 {
                     currentObj.transform.RotateAround(currentObj.transform.position, transform.up, 30 * Time.deltaTime);
-
                 }
-
             }
             else if (controller == leftController)
             {
@@ -451,12 +472,12 @@ public class MasterCtrl : MonoBehaviour
                     currentObj.transform.localPosition *= (1 - 1 * Time.deltaTime);
                 }
 
-                else if (OVRInput.Get(OVRInput.RawButton.LThumbstickUp))
+                else if (OVRInput.Get(OVRInput.RawButton.LThumbstickLeft))
                 {
                     currentObj.transform.localScale = Vector3.Lerp(currentObj.transform.localScale,
                         currentObj.transform.localScale * (1 - 10 * Time.deltaTime), 0.1f);
                 }
-                else if (OVRInput.Get(OVRInput.RawButton.LThumbstickDown))
+                else if (OVRInput.Get(OVRInput.RawButton.LThumbstickRight))
                 {
                     currentObj.transform.localScale = Vector3.Lerp(currentObj.transform.localScale,
                         currentObj.transform.localScale * (1 + 10 * Time.deltaTime), 0.1f);
@@ -485,13 +506,14 @@ public class MasterCtrl : MonoBehaviour
                 currentObj.transform.localScale = preManipulationScale;
                 currentObj.transform.SetPositionAndRotation(preManipulationPos, preManipulationRot);
             }
-        }
-        ShowModeMsg("model position:" +
+
+            ShowModeMsg("model position:" +
                 currentObj.transform.position.x.ToString("F3") + ", " +
                 currentObj.transform.position.y.ToString("F3") + ", " +
                 currentObj.transform.position.z.ToString("F3") + "\n" +
-            "model scale:" +
+                "model scale:" +
                 currentObj.transform.lossyScale.x.ToString("F3"));
+        }
     }
 
 
@@ -668,10 +690,13 @@ public class MasterCtrl : MonoBehaviour
     // right thumbstick for rotations (left and right only) 
     // first person viewing angel is strictly attached to userRig, and does not interfere with drone movement
     // this is basically the broom control logic from hogwartz legacy
+    // TODO: When user is small, the default flying speed is too small, should scale and make slower (but not faster when the user is larger
+    // TODO: to ebaborate on the above issue, maybe do not let the user get larger than default cuz whats the point (cap userscale at max=1)
+    // TODO: does the current independent rotation/lookaround thing feel unintuitive?
     void Drone()
     {
         if (!isDrone)
-        {
+        { 
             isDrone = true;
             preDronePos = imDrone.transform.position;
             preDroneRot = imDrone.transform.rotation;
@@ -680,6 +705,12 @@ public class MasterCtrl : MonoBehaviour
             miniMap.SetActive(true);
             miniMap.transform.SetPositionAndRotation(leftController.transform.position + new Vector3(0, 0.1f * imDrone.transform.localScale.magnitude, 0), leftController.transform.rotation); ;
             miniMap.transform.parent = leftController.transform;
+
+            if (OVRManager.instance.isInsightPassthroughEnabled & !droneToggledPassthrough)
+            {
+                OVRManager.instance.isInsightPassthroughEnabled = false;
+                droneToggledPassthrough = true;
+            }
         }
         else
         {
@@ -693,12 +724,18 @@ public class MasterCtrl : MonoBehaviour
                 isDrone = false;
                 droneMode = false;
                 dronePanel.SetActive(false);
+
+                // toggle back passthrough if it was disabled earlier when entering drone mode
+                if (droneToggledPassthrough)
+                {
+                    OVRManager.instance.isInsightPassthroughEnabled = true;
+                    droneToggledPassthrough = false;
+                }
             }   
         }
     }
     void OperateDrone()
     {
-        // TODO: adjust flying speed to size?
         //move up and down
         if (OVRInput.Get(OVRInput.RawButton.LThumbstickUp))
         {
@@ -780,7 +817,6 @@ public class MasterCtrl : MonoBehaviour
     void VisualizeRay(GameObject controller)
     {
         GameObject myLine = new();
-        //if (controller == rightController) myLine.tag = "rightLine";
         myLine.transform.position = controller.transform.position;
         myLine.AddComponent<LineRenderer>();
         LineRenderer lr = myLine.GetComponent<LineRenderer>();
@@ -853,7 +889,7 @@ public class MasterCtrl : MonoBehaviour
     //        Destroy(rr.GetComponent<MeshRenderer>());
     //        rr.tag = "rightLine";
 
-    //        if (Physics.Raycast(leftController.transform.position, leftController.transform.forward, out RaycastHit hit, 5))
+    //        if (Physics.Raycast(leftController.transform.position, leftController.transform.forward, out RaycastHit hit, 6))
     //        {
     //            if (hit.transform.gameObject.CompareTag("rightLine"))
     //            {
