@@ -1,7 +1,7 @@
 using UnityEngine;
 
 //[ExecuteAlways]
-public class ClipperPlaneLeft : MonoBehaviour
+public class LeftClipperCtrl : MonoBehaviour
 {
     //materials we pass the values to
     public Material L1_mat;
@@ -26,10 +26,9 @@ public class ClipperPlaneLeft : MonoBehaviour
     //execute every frame
     void Update()
     {
-        //create plane
         Plane plane = new Plane(transform.up, transform.position);
-        //transfer values from plane to vector4
         Vector4 planeRepresentation = new Vector4(plane.normal.x, plane.normal.y, plane.normal.z, plane.distance);
+
         //pass vector to shader
         L1_mat.SetVector("_PlaneLeft", planeRepresentation);
         L2_mat.SetVector("_PlaneLeft", planeRepresentation);
@@ -49,5 +48,7 @@ public class ClipperPlaneLeft : MonoBehaviour
         R7_mat.SetVector("_PlaneLeft", planeRepresentation);
         R8_mat.SetVector("_PlaneLeft", planeRepresentation);
         R9_mat.SetVector("_PlaneLeft", planeRepresentation);
+
     }
+
 }

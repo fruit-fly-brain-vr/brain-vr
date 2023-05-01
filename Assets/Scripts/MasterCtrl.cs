@@ -20,6 +20,8 @@ public class MasterCtrl : MonoBehaviour
     public GameObject userRig;
     public GameObject leftClipper;
     public GameObject rightClipper;
+    public GameObject leftClipperIndicator;
+    public GameObject rightClipperIndicator;
     public GameObject imDrone;
     public GameObject miniMap;
     public GameObject birdCamDisplay;
@@ -57,6 +59,8 @@ public class MasterCtrl : MonoBehaviour
     private bool isDrone = false;
     private bool isRestart = false;
     private bool droneToggledPassthrough = false;
+    private bool leftClipperFixed = false;
+    private bool rightClipperFixed = false;
     public Material highlightMat;
     public Material lineMat;
     private GameObject cameraIndicatorBall = null; // this object is only used for single ray move camera; can't find a way around it
@@ -68,6 +72,8 @@ public class MasterCtrl : MonoBehaviour
     private Quaternion preManipulationRot = Quaternion.identity;
     private Vector3 preDronePos = Vector3.one;
     private Quaternion preDroneRot = Quaternion.identity;
+    private Vector3 clipperPos = Vector3.one;
+    private Quaternion clipperRot = Quaternion.identity;
 
     // private bools for trigger controls
     private bool right_index = false;
@@ -87,10 +93,14 @@ public class MasterCtrl : MonoBehaviour
         birdCamDisplay.SetActive(false);
         birdCam.enabled = false;
         miniMap.SetActive(false);
-        leftClipper.SetActive(false);
-        rightClipper.SetActive(false);
+        leftClipperIndicator.SetActive(false);
+        rightClipperIndicator.SetActive(false);
         dronePanel.SetActive(false);
         restartPanel.SetActive(false);
+
+        // store some inititial value;
+        clipperPos = leftClipper.transform.position;
+        clipperRot = leftClipper.transform.rotation;
     }
 
     void Update()
@@ -101,6 +111,7 @@ public class MasterCtrl : MonoBehaviour
         ModeListener();
         Restart();
         BackgroundToggle();
+        ResetClippers();
     }
 
     // make both left and right tool menus
@@ -296,7 +307,7 @@ public class MasterCtrl : MonoBehaviour
     // restart function
     void Restart()
     {
-        if (OVRInput.Get(OVRInput.RawButton.A))
+        if (OVRInput.Get(OVRInput.RawButton.Start))
         {
             restartPanel.SetActive(true);
             isRestart = true;
@@ -399,7 +410,6 @@ public class MasterCtrl : MonoBehaviour
         { 
             selected = false;
             currentObj.transform.parent = null;
-            //currentObj = null;// this was the line causing the bug
         }
     }
     void SingleRayManipulationEachHand(GameObject controller)
@@ -645,39 +655,102 @@ public class MasterCtrl : MonoBehaviour
         Destroy(theBabyIndicatorBall, 0.02f);
     }
 
-
     // slice mode stuff
     // want to allow both hands to slice at the same time
     void Slice()
     {
         if (right_index & right_hand)
         {
-            if (!rightClipper.activeSelf)
+            // todo: how the fuck does this line teleport the clipper ???
+            // how is it not in my hands legit what the fuck
+            if (!rightClipperIndicator.activeSelf)
             {
-                rightClipper.SetActive(true);
+                rightClipper.transform.parent = null; // this line is needed to prevent a bug -- after clipping and returning to slice mode, the first trigger press results in offsetted plane clipper, which is corrected after a second press
+                rightClipperFixed = false;
+                rightClipperIndicator.SetActive(true);
                 rightClipper.transform.SetLocalPositionAndRotation(rightController.transform.position, rightController.transform.rotation);
                 rightClipper.transform.parent = rightController.transform;
             }
         }
         else
         {
-            rightClipper.transform.parent = null;
-            rightClipper.SetActive(false);
+            if (rightClipperFixed)
+            {
+                rightClipper.transform.parent = brainModel.transform;
+            }
+            else {
+                rightClipper.transform.parent = null;
+            }
+            rightClipperIndicator.SetActive(false);
         }
         if (left_index & left_hand)
         {
-            if (!leftClipper.activeSelf)
+            if (!leftClipperIndicator.activeSelf)
             {
-                leftClipper.SetActive(true);
+                leftClipper.transform.parent = null;
+                leftClipperFixed = false;
+                leftClipperIndicator.SetActive(true);
                 leftClipper.transform.SetLocalPositionAndRotation(leftController.transform.position, leftController.transform.rotation);
                 leftClipper.transform.parent = leftController.transform;
             }
         }
         else
         {
-            leftClipper.transform.parent = null;
-            leftClipper.SetActive(false);
-            // todo: the plane under the clipper is not disabled somehow...
+            if (leftClipperFixed)
+            {
+                leftClipper.transform.parent = brainModel.transform;
+            }
+            else
+            {
+                leftClipper.transform.parent = null;
+            }
+            leftClipperIndicator.SetActive(false);
+        }
+
+        // the "fixClip" botton, sets "clip fixed"; if clip fixed, set its parent to the brain object
+        if (!isRestart & OVRInput.Get(OVRInput.RawButton.X))
+        {
+            // fix left controller
+            leftClipperFixed = true;
+            leftClipper.transform.parent = brainModel.transform;
+
+        }
+        else if (!isRestart & OVRInput.Get(OVRInput.RawButton.A))
+        {
+            // fix right controller
+            rightClipperFixed = true;
+            rightClipper.transform.parent = brainModel.transform;
+        }
+
+        // mode display show information
+        if (leftClipperFixed & !rightClipperFixed)
+        {
+            ShowModeMsg("Slicer \n Left Clipper Locked");
+        }
+        else if (rightClipperFixed & !leftClipperFixed)
+        {
+            ShowModeMsg("Slicer \n Right Clipper Locked");
+        }
+        else if (rightClipperFixed & leftClipperFixed)
+        {
+            ShowModeMsg("Slicer \n Left Clipper Locked\n Right Clipper Locked");
+        }
+    }
+    void ResetClippers()
+    {
+        if (!sliceMode)
+        {
+            if (!leftClipperFixed)
+            {
+                leftClipper.transform.parent = null;
+                leftClipper.transform.SetPositionAndRotation(clipperPos, clipperRot);
+            }
+            if (!rightClipperFixed)
+            {
+                rightClipper.transform.parent = null;
+                rightClipper.transform.SetPositionAndRotation(clipperPos, clipperRot);
+
+            }
         }
     }
 
