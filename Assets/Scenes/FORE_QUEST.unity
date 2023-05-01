@@ -1703,6 +1703,7 @@ MonoBehaviour:
   pinpointDisplay: {fileID: 1524268507}
   indicatorBall: {fileID: 5797164916715797624, guid: c4ea0915903374db58451c5e87db2a2f, type: 3}
   minimapIndicatorBall: {fileID: 2587239753146906460, guid: bf30f4715a7814dba8e9b1c7e948bead, type: 3}
+  posArrow: {fileID: 3940191503139583926, guid: bb6c92db91f2c43638da99fbeb2ae3f7, type: 3}
   restartPanel: {fileID: 220941109}
   pinpointDisplayMsg: {fileID: 1093515028}
   instructionPanel: {fileID: 492699055}

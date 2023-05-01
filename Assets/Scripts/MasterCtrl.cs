@@ -1,11 +1,8 @@
-using System;
-using System.Xml.Linq;
-using Meta.WitAi;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
-using static Oculus.Interaction.UnityCanvas.CanvasRenderTexture;
+using Random = UnityEngine.Random;
 
 /// <summary>
 /// 
@@ -35,6 +32,7 @@ public class MasterCtrl : MonoBehaviour
     public GameObject pinpointDisplay;
     public GameObject indicatorBall;
     public GameObject minimapIndicatorBall;
+    public GameObject posArrow;
     public GameObject restartPanel;
     public TextMeshPro pinpointDisplayMsg;
     public GameObject instructionPanel;
@@ -74,6 +72,7 @@ public class MasterCtrl : MonoBehaviour
     private Quaternion preDroneRot = Quaternion.identity;
     private Vector3 clipperPos = Vector3.one;
     private Quaternion clipperRot = Quaternion.identity;
+    private List<float[]> snapshotList = new List<float[]>();
 
     // private bools for trigger controls
     private bool right_index = false;
@@ -112,6 +111,7 @@ public class MasterCtrl : MonoBehaviour
         Restart();
         BackgroundToggle();
         ResetClippers();
+        StoreSnapshot();
     }
 
     // make both left and right tool menus
@@ -307,16 +307,16 @@ public class MasterCtrl : MonoBehaviour
     // restart function
     void Restart()
     {
-        if (OVRInput.Get(OVRInput.RawButton.Start))
+        if (OVRInput.GetDown(OVRInput.RawButton.Start))
         {
             restartPanel.SetActive(true);
             isRestart = true;
         }
-        if (OVRInput.Get(OVRInput.RawButton.Y) & isRestart)
+        if (OVRInput.GetDown(OVRInput.RawButton.Y) & isRestart)
         {
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
-        else if (OVRInput.Get(OVRInput.RawButton.X) & isRestart)
+        else if (OVRInput.GetDown(OVRInput.RawButton.X) & isRestart)
         {
             isRestart = false;
             restartPanel.SetActive(false);
@@ -511,7 +511,7 @@ public class MasterCtrl : MonoBehaviour
                 }
             }
 
-            if (OVRInput.Get(OVRInput.RawButton.X))
+            if (OVRInput.GetDown(OVRInput.RawButton.X))
             {
                 currentObj.transform.localScale = preManipulationScale;
                 currentObj.transform.SetPositionAndRotation(preManipulationPos, preManipulationRot);
@@ -649,10 +649,11 @@ public class MasterCtrl : MonoBehaviour
             "Camera Height " + birdCam.transform.localPosition.y.ToString("F2") + "m";
 
         Vector3 babyIbPos = brainModel.transform.InverseTransformPoint(ib.transform.position);
-        GameObject theBabyIndicatorBall = Instantiate(minimapIndicatorBall, miniMap.transform.position, Quaternion.identity);
-        theBabyIndicatorBall.transform.parent = miniMap.transform;
-        theBabyIndicatorBall.transform.localPosition = babyIbPos;
-        Destroy(theBabyIndicatorBall, 0.02f);
+        Quaternion babyIbRot = Quaternion.Inverse(brainModel.transform.rotation) * ib.transform.rotation;
+        GameObject theMinimapArrow = Instantiate(posArrow, miniMap.transform.position, Quaternion.identity);
+        theMinimapArrow.transform.parent = miniMap.transform;
+        theMinimapArrow.transform.SetLocalPositionAndRotation(babyIbPos, babyIbRot);
+        Destroy(theMinimapArrow, 0.02f);
     }
 
     // slice mode stuff
@@ -708,14 +709,14 @@ public class MasterCtrl : MonoBehaviour
         }
 
         // the "fixClip" botton, sets "clip fixed"; if clip fixed, set its parent to the brain object
-        if (!isRestart & OVRInput.Get(OVRInput.RawButton.X))
+        if (!isRestart & OVRInput.GetDown(OVRInput.RawButton.X))
         {
             // fix left controller
             leftClipperFixed = true;
             leftClipper.transform.parent = brainModel.transform;
 
         }
-        else if (!isRestart & OVRInput.Get(OVRInput.RawButton.A))
+        else if (!isRestart & OVRInput.GetDown(OVRInput.RawButton.A))
         {
             // fix right controller
             rightClipperFixed = true;
@@ -789,7 +790,7 @@ public class MasterCtrl : MonoBehaviour
         {
             OperateDrone();
 
-            if ((OVRInput.Get(OVRInput.RawButton.X)))
+            if ((OVRInput.GetDown(OVRInput.RawButton.X)))
             {
                 miniMap.SetActive(false);
                 imDrone.transform.localScale = Vector3.one;
@@ -866,13 +867,12 @@ public class MasterCtrl : MonoBehaviour
                     "drone scale:" +
                         imDrone.transform.localScale.x.ToString("F3");
 
-        Vector3 babyDroneIbPos = brainModel.transform.InverseTransformPoint(imDrone.transform.position);
-        GameObject theBabyDoneIndicatorBall = Instantiate(minimapIndicatorBall, miniMap.transform.position, Quaternion.identity);
-        theBabyDoneIndicatorBall.transform.parent = miniMap.transform;
-        theBabyDoneIndicatorBall.transform.localPosition = babyDroneIbPos;
-        theBabyDoneIndicatorBall.transform.localScale = imDrone.transform.localScale*10;
-        Destroy(theBabyDoneIndicatorBall, 0.02f);
-
+        Vector3 babyDroneArrowPos = brainModel.transform.InverseTransformPoint(imDrone.transform.position);
+        Quaternion babyDroneArrowRot = Quaternion.Inverse(brainModel.transform.rotation) * imDrone.transform.rotation;
+        GameObject theMinimapArrow = Instantiate(posArrow, miniMap.transform.position, Quaternion.identity);
+        theMinimapArrow.transform.parent = miniMap.transform;
+        theMinimapArrow.transform.SetLocalPositionAndRotation(babyDroneArrowPos, babyDroneArrowRot);
+        Destroy(theMinimapArrow, 0.02f);
     }
 
 
@@ -904,6 +904,39 @@ public class MasterCtrl : MonoBehaviour
     }
 
 
+    void StoreSnapshot()
+    {
+        if (droneMode & !isRestart)
+        {
+            if (OVRInput.GetDown(OVRInput.RawButton.Y))
+            {
+                Vector3 thePos = brainModel.transform.InverseTransformPoint(imDrone.transform.position);
+                AddToMiniMap(thePos);
+            }
+        }
+        else if (singleRayDepthCamMode & !isRestart & cameraIndicatorBall!=null)
+        {
+            if (OVRInput.GetDown(OVRInput.RawButton.Y))
+            {
+                Vector3 thePos = brainModel.transform.InverseTransformPoint(cameraIndicatorBall.transform.position);
+                AddToMiniMap(thePos);
+            }
+        }
+    }
+    void AddToMiniMap(Vector3 pos) {
+        GameObject snapshotIb = Instantiate(minimapIndicatorBall, miniMap.transform.position, Quaternion.identity);
+        snapshotIb.transform.parent = miniMap.transform;
+        snapshotIb.transform.localPosition = pos;
+        snapshotIb.GetComponent<MeshRenderer>().material.color = new Color(Random.Range(0F, 1F), Random.Range(0F, 1F), Random.Range(0F, 1F));
+
+        // add point to the list
+        float[] snapshotEntry = new float[3];
+        snapshotEntry[0] = pos.x;
+        snapshotEntry[1] = pos.y;
+        snapshotEntry[2] = pos.z;
+        // snapshotEntry[3] = scale;
+        snapshotList.Add(snapshotEntry);
+    }
     //// two ray zoom move
     //// cast two rays onto object and scale the size of object based on distance of
     //// left and right ray cast hit points
