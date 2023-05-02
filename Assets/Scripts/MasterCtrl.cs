@@ -6,8 +6,8 @@ using Random = UnityEngine.Random;
 
 /// <summary>
 /// 
-/// This class includes obejct manipulation methods using Rays
-/// 
+/// Monolith Script for the whole project
+///
 /// </summary>
 public class MasterCtrl : MonoBehaviour
 {
@@ -72,6 +72,7 @@ public class MasterCtrl : MonoBehaviour
     private Quaternion preDroneRot = Quaternion.identity;
     private Vector3 clipperPos = Vector3.one;
     private Quaternion clipperRot = Quaternion.identity;
+    private Vector3 iniBrainScale = Vector3.one;
     private List<float[]> snapshotList = new List<float[]>();
 
     // private bools for trigger controls
@@ -100,6 +101,7 @@ public class MasterCtrl : MonoBehaviour
         // store some inititial value;
         clipperPos = leftClipper.transform.position;
         clipperRot = leftClipper.transform.rotation;
+        iniBrainScale = brainModel.transform.localScale;
     }
 
     void Update()
@@ -121,6 +123,9 @@ public class MasterCtrl : MonoBehaviour
         {
             leftToolMenu.SetActive(leftToolMenuOpen);
             rightToolMenu.SetActive(rightToolMenuOpen);
+
+            bool noTriggersPressed = !right_hand & !right_index & !left_hand & !left_index;
+
             if (leftToolMenuOpen)
             {
                 SelectTool();
@@ -129,7 +134,7 @@ public class MasterCtrl : MonoBehaviour
             {
                 SelectTool();
             }
-            else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstick))
+            else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstick) & noTriggersPressed)
             {
                 leftToolMenuOpen = true;
                 rightToolMenuOpen = false;
@@ -137,7 +142,7 @@ public class MasterCtrl : MonoBehaviour
                 leftToolMenu.transform.SetPositionAndRotation(leftController.transform.position, leftController.transform.rotation);
                 leftToolMenu.transform.parent = leftController.transform;
             }
-            else if (OVRInput.GetDown(OVRInput.RawButton.RThumbstick))
+            else if (OVRInput.GetDown(OVRInput.RawButton.RThumbstick) & noTriggersPressed)
             {
                 rightToolMenuOpen = true;
                 leftToolMenuOpen = false;
@@ -653,6 +658,7 @@ public class MasterCtrl : MonoBehaviour
         GameObject theMinimapArrow = Instantiate(posArrow, miniMap.transform.position, Quaternion.identity);
         theMinimapArrow.transform.parent = miniMap.transform;
         theMinimapArrow.transform.SetLocalPositionAndRotation(babyIbPos, babyIbRot);
+        theMinimapArrow.transform.localScale = 666.7f * iniBrainScale.magnitude * imDrone.transform.localScale/brainModel.transform.localScale.magnitude;
         Destroy(theMinimapArrow, 0.02f);
     }
 
@@ -810,34 +816,40 @@ public class MasterCtrl : MonoBehaviour
     }
     void OperateDrone()
     {
+        float veloMod = 1;
+        if (imDrone.transform.localScale.x <= 1f)
+        {
+            veloMod = imDrone.transform.localScale.x;
+        }
+
         //move up and down
         if (OVRInput.Get(OVRInput.RawButton.LThumbstickUp))
         {
-            imDrone.transform.position += 3 * Time.deltaTime * imDrone.transform.up;
+            imDrone.transform.position += 3 * veloMod * Time.deltaTime * imDrone.transform.up;
         }
         else if (OVRInput.Get(OVRInput.RawButton.LThumbstickDown))
         {
-            imDrone.transform.position -= 3 * Time.deltaTime * imDrone.transform.up;
+            imDrone.transform.position -= 3 * veloMod * Time.deltaTime * imDrone.transform.up;
         }
 
         //pan left and right
         if (OVRInput.Get(OVRInput.RawButton.LThumbstickRight))
         {
-            imDrone.transform.position += 3 * Time.deltaTime * imDrone.transform.right;
+            imDrone.transform.position += 3 * veloMod * Time.deltaTime * imDrone.transform.right;
         }
         else if (OVRInput.Get(OVRInput.RawButton.LThumbstickLeft))
         {
-            imDrone.transform.position -= 3 * Time.deltaTime * imDrone.transform.right;
+            imDrone.transform.position -= 3 * veloMod * Time.deltaTime * imDrone.transform.right;
         }
 
         //forward and back
         if (OVRInput.Get(OVRInput.RawButton.RThumbstickUp))
         {
-            imDrone.transform.position += 3 * Time.deltaTime * imDrone.transform.forward;
+            imDrone.transform.position += 3 * veloMod * Time.deltaTime * imDrone.transform.forward;
         }
         else if (OVRInput.Get(OVRInput.RawButton.RThumbstickDown))
         {
-            imDrone.transform.position -= 3 * Time.deltaTime * imDrone.transform.forward;
+            imDrone.transform.position -= 3 * veloMod * Time.deltaTime * imDrone.transform.forward;
         }
 
         //look left and right
@@ -851,13 +863,13 @@ public class MasterCtrl : MonoBehaviour
         }
 
         // scale my size
-        if (right_index)
+        if (right_index & imDrone.transform.localScale.x <= 3f)
         {
-            imDrone.transform.localScale *= (1 + 1 * Time.deltaTime);
+            imDrone.transform.localScale *= (1 + Time.deltaTime);
         }
-        else if (left_index)
+        else if (left_index & imDrone.transform.localScale.x >= 0.33f)
         {
-            imDrone.transform.localScale *= (1 - 1 * Time.deltaTime);
+            imDrone.transform.localScale *= (1 - Time.deltaTime);
         }
 
         droneMsg.text = "position:" +
@@ -872,6 +884,7 @@ public class MasterCtrl : MonoBehaviour
         GameObject theMinimapArrow = Instantiate(posArrow, miniMap.transform.position, Quaternion.identity);
         theMinimapArrow.transform.parent = miniMap.transform;
         theMinimapArrow.transform.SetLocalPositionAndRotation(babyDroneArrowPos, babyDroneArrowRot);
+        theMinimapArrow.transform.localScale = 666.7f * iniBrainScale.magnitude * imDrone.transform.localScale/brainModel.transform.localScale.magnitude; // this is magic... cuz after setting parent the local scale becomes 666.7
         Destroy(theMinimapArrow, 0.02f);
     }
 
@@ -928,7 +941,8 @@ public class MasterCtrl : MonoBehaviour
         snapshotIb.transform.parent = miniMap.transform;
         snapshotIb.transform.localPosition = pos;
         snapshotIb.GetComponent<MeshRenderer>().material.color = new Color(Random.Range(0F, 1F), Random.Range(0F, 1F), Random.Range(0F, 1F));
-
+        // the screenshot size scales with the drone size and model size
+        snapshotIb.transform.localScale = 10f * iniBrainScale.magnitude * imDrone.transform.localScale/brainModel.transform.localScale.magnitude;
         // add point to the list
         float[] snapshotEntry = new float[3];
         snapshotEntry[0] = pos.x;
