@@ -25,15 +25,12 @@ public class MasterCtrl : MonoBehaviour
     public Camera birdCam; // todo: mayber change birdcam to either from facing config or the three camera cube
 
 
-    // todo: uncomment these
     // the models and model loading menus
     public GameObject brainModel; // always keep this, this is the highest level model that is interacted with directly
-    //public GameObject eb;
-    //public GameObject pb;
-    //public GameObject elNeurons; // add epg later
-    //public GameObject modelMenu;
-    //public GameObject neuropilMenu;
-    //public GameObject celltypeMenu;
+    public GameObject eb;
+    public GameObject pb;
+    public GameObject elNeurons; // add epg later
+    public GameObject modelMenu;
 
     // UI elements
     public GameObject leftToolMenu;
@@ -49,7 +46,7 @@ public class MasterCtrl : MonoBehaviour
     public GameObject modePanel;
     public TextMeshProUGUI modeMsg;
     public GameObject dronePanel;
-    public TextMeshProUGUI droneMsg;
+    public TextMeshPro droneMsg;
     public GameObject droneDirectionArrow;
 
     // bools related to tool modes
@@ -114,6 +111,7 @@ public class MasterCtrl : MonoBehaviour
         dronePanel.SetActive(false);
         restartPanel.SetActive(false);
         droneDirectionArrow.SetActive(false);
+        modelMenu.SetActive(false);
 
         // store some inititial value;
         clipperPos = leftClipper.transform.position;
@@ -193,7 +191,7 @@ public class MasterCtrl : MonoBehaviour
             }
             else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstickLeft))
             {
-                droneMode = true;
+                droneMode = true; // todo:  bug: in droneMode, the lefttoolmenu does not close
                 singleRaySelectMode = false;
                 modelLoadingMode = false;
                 singleRayManipulationMode = false;
@@ -214,7 +212,7 @@ public class MasterCtrl : MonoBehaviour
                 droneMode = false;
 
                 leftToolMenuOpen = false;
-                ShowModeMsg("Select neuropil/neuron to add");
+                ShowModeMsg("Select neuropil/celltype to add");
                 ShowInstructionMsg("...insert rule for this mode here...");//todo: add rule
             }
         }
@@ -367,20 +365,33 @@ public class MasterCtrl : MonoBehaviour
         }
     }
 
-    //TODO: allow adding and removing models
+    //TODO: allow adding and removing models (neuropils and celltypes )
     //TODO: now it is accessible on the tool menu, tho at the begining of the game we should also the model selection model
     void LoadModels() {
         // first line:
-        // modelMenu.setActive(true);
+        if (modelMenu.activeSelf) {
+            modelMenu.transform.position = leftController.transform.position + new Vector3(0, 0.2f, 0);
+            modelMenu.transform.LookAt(2 * modelMenu.transform.position - userRig.transform.position);
+        }
 
+        // todo: remove this if we use the menu button... but i think this is nice since X is also for existing drone mode
+        if (OVRInput.GetDown(OVRInput.RawButton.X) & !isRestart) {
+            modelLoadingMode = false;
+            ShowModeMsg("");
+        }
         // turn the menus on and off
-        // hopefully the menus are clickable --- ahhhh
+        // hopefully the menus are clickable --- make it compatitble with onclick -- probabaly just need a bunch of more methods
 
         // only set bools for neurons
     }
     void ModelToggleListener() {
+        modelMenu.SetActive(modelLoadingMode);
         // the bools are set in the LoadModels
         // this function is called in update() to toggle the models (neuropils and celltypes)-- we do not fuck with individual neurons
+        // todo: uncomment this:
+        // eb.SetActive(ebOn);
+        // pb.SetActive(phOn);
+        // elNeurons.SetActive(elNeuronsOn);
     }
 
 
@@ -806,6 +817,7 @@ public class MasterCtrl : MonoBehaviour
         if (!isDrone)
         { 
             isDrone = true;
+            leftToolMenu.SetActive(false); // this line is to temporarily deal with a bug
             preDronePos = imDrone.transform.position;
             preDroneRot = imDrone.transform.rotation;
             dronePanel.SetActive(true);
@@ -856,31 +868,31 @@ public class MasterCtrl : MonoBehaviour
         //move up and down
         if (OVRInput.Get(OVRInput.RawButton.LThumbstickUp))
         {
-            imDrone.transform.position += 3 * veloMod * Time.deltaTime * imDrone.transform.up;
+            imDrone.transform.position += veloMod * Time.deltaTime * imDrone.transform.up;
         }
         else if (OVRInput.Get(OVRInput.RawButton.LThumbstickDown))
         {
-            imDrone.transform.position -= 3 * veloMod * Time.deltaTime * imDrone.transform.up;
+            imDrone.transform.position -= veloMod * Time.deltaTime * imDrone.transform.up;
         }
 
         //pan left and right
         if (OVRInput.Get(OVRInput.RawButton.LThumbstickRight))
         {
-            imDrone.transform.position += 3 * veloMod * Time.deltaTime * imDrone.transform.right;
+            imDrone.transform.position += veloMod * Time.deltaTime * imDrone.transform.right;
         }
         else if (OVRInput.Get(OVRInput.RawButton.LThumbstickLeft))
         {
-            imDrone.transform.position -= 3 * veloMod * Time.deltaTime * imDrone.transform.right;
+            imDrone.transform.position -= veloMod * Time.deltaTime * imDrone.transform.right;
         }
 
         //forward and back
         if (OVRInput.Get(OVRInput.RawButton.RThumbstickUp))
         {
-            imDrone.transform.position += 3 * veloMod * Time.deltaTime * imDrone.transform.forward;
+            imDrone.transform.position += veloMod * Time.deltaTime * imDrone.transform.forward;
         }
         else if (OVRInput.Get(OVRInput.RawButton.RThumbstickDown))
         {
-            imDrone.transform.position -= 3 * veloMod * Time.deltaTime * imDrone.transform.forward;
+            imDrone.transform.position -= veloMod * Time.deltaTime * imDrone.transform.forward;
         }
 
         //look left and right
@@ -903,11 +915,11 @@ public class MasterCtrl : MonoBehaviour
             imDrone.transform.localScale *= (1 - Time.deltaTime);
         }
 
-        droneMsg.text = "coord:" +
+        droneMsg.text = "coord: " +
                         imDrone.transform.position.x.ToString("F3") + ", " +
                         imDrone.transform.position.y.ToString("F3") + ", " +
                         imDrone.transform.position.z.ToString("F3") + "\n" +
-                    "drone scale:" +
+                    "drone scale: " +
                         imDrone.transform.localScale.x.ToString("F3");
 
         Vector3 babyDroneArrowPos = brainModel.transform.InverseTransformPoint(imDrone.transform.position);
