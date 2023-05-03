@@ -22,9 +22,18 @@ public class MasterCtrl : MonoBehaviour
     public GameObject imDrone;
     public GameObject miniMap;
     public GameObject birdCamDisplay;
-    public GameObject brainModel;
-
     public Camera birdCam; // todo: mayber change birdcam to either from facing config or the three camera cube
+
+
+    // todo: uncomment these
+    // the models and model loading menus
+    public GameObject brainModel; // always keep this, this is the highest level model that is interacted with directly
+    //public GameObject eb;
+    //public GameObject pb;
+    //public GameObject elNeurons; // add epg later
+    //public GameObject modelMenu;
+    //public GameObject neuropilMenu;
+    //public GameObject celltypeMenu;
 
     // UI elements
     public GameObject leftToolMenu;
@@ -81,7 +90,13 @@ public class MasterCtrl : MonoBehaviour
     private bool right_hand = false;
     private bool left_index = false;
     private bool left_hand = false;
-    
+
+    // todo: uncomment these
+    ////private bools for toggling models;
+    //private bool ebOn = false;
+    //private bool pbOn = false;
+    //private bool elNeuronsOn = false;
+
 
     void Start()
     {
@@ -112,6 +127,7 @@ public class MasterCtrl : MonoBehaviour
         IndexTriggerRay();
         OpenMenu();
         ModeListener();
+        ModelToggleListener();
         Restart();
         BackgroundToggle();
         ResetClippers();
@@ -295,7 +311,6 @@ public class MasterCtrl : MonoBehaviour
             selected = false;
             ShowInstructionMsg("Interaction Demo open Left/Right Tool Menu by\n pressing Left/Right Thunbstick");
         }
-
     }
 
     // this method updates the displayed message and instruction
@@ -355,9 +370,19 @@ public class MasterCtrl : MonoBehaviour
     //TODO: allow adding and removing models
     //TODO: now it is accessible on the tool menu, tho at the begining of the game we should also the model selection model
     void LoadModels() {
+        // first line:
+        // modelMenu.setActive(true);
 
+        // turn the menus on and off
+        // hopefully the menus are clickable --- ahhhh
+
+        // only set bools for neurons
     }
-    
+    void ModelToggleListener() {
+        // the bools are set in the LoadModels
+        // this function is called in update() to toggle the models (neuropils and celltypes)-- we do not fuck with individual neurons
+    }
+
 
     /// <summary>
     /// Below this line is strictly interaction methods
@@ -367,7 +392,7 @@ public class MasterCtrl : MonoBehaviour
     // single ray select
     // return information of neuron or neuropil
     // currently only supports neuron, somehow need to make it also support neuropil
-    // TODO: add remove neuron function, or pinning
+    // TODO: add hide neuron function, and/or pinning
     void SingleRaySelect()
     {
         if (right_index & right_hand)
@@ -776,9 +801,6 @@ public class MasterCtrl : MonoBehaviour
     // right thumbstick for rotations (left and right only) 
     // first person viewing angel is strictly attached to userRig, and does not interfere with drone movement
     // this is basically the broom control logic from hogwartz legacy
-    // TODO: When user is small, the default flying speed is too small, should scale and make slower (but not faster when the user is larger
-    // TODO: to ebaborate on the above issue, maybe do not let the user get larger than default cuz whats the point (cap userscale at max=1)
-    // TODO: does the current independent rotation/lookaround thing feel unintuitive?
     void Drone()
     {
         if (!isDrone)
