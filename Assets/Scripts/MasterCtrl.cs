@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using Random = UnityEngine.Random;
 
@@ -21,16 +22,16 @@ public class MasterCtrl : MonoBehaviour
     public GameObject rightClipperIndicator;
     public GameObject imDrone;
     public GameObject miniMap;
-    public GameObject birdCamDisplay;
-    public Camera birdCam; // todo: mayber change birdcam to either from facing config or the three camera cube
-
+    public Camera birdCam;
 
     // the models and model loading menus
     public GameObject brainModel; // always keep this, this is the highest level model that is interacted with directly
     public GameObject eb;
     public GameObject pb;
-    public GameObject elNeurons; // add epg later
+    public GameObject elNeurons;
+    public GameObject erNeurons;
     public GameObject modelMenu;
+    public GameObject[] menuItems;
 
     // UI elements
     public GameObject leftToolMenu;
@@ -48,12 +49,13 @@ public class MasterCtrl : MonoBehaviour
     public GameObject dronePanel;
     public TextMeshPro droneMsg;
     public GameObject droneDirectionArrow;
+    public GameObject birdCamDisplay;
 
     // bools related to tool modes
     private bool leftToolMenuOpen = false;
     private bool rightToolMenuOpen = false;
-    private bool singleRaySelectMode = false; 
-    private bool singleRayManipulationMode = false; 
+    private bool singleRaySelectMode = false;
+    private bool singleRayManipulationMode = false;
     private bool singleRayDepthCamMode = false;
     private bool sliceMode = false;
     private bool modelLoadingMode = false;
@@ -69,6 +71,10 @@ public class MasterCtrl : MonoBehaviour
     public Material highlightMat;
     public Material lineMat;
     private GameObject cameraIndicatorBall = null; // this object is only used for single ray move camera; can't find a way around it
+    private int currentMenuItem = 0;
+    private Color offColor = Color.gray;
+    private Color onColor = Color.green;
+    private Color hoverColor = Color.cyan;
 
     // state storage var
     private GameObject currentObj; // the object currently registered for selection
@@ -88,17 +94,16 @@ public class MasterCtrl : MonoBehaviour
     private bool left_index = false;
     private bool left_hand = false;
 
-    // todo: uncomment these
     ////private bools for toggling models;
-    //private bool ebOn = false;
-    //private bool pbOn = false;
-    //private bool elNeuronsOn = false;
-
+    private bool ebOn = false;
+    private bool pbOn = false;
+    private bool elNeuronsOn = false;
+    private bool erNeuronsOn = false;
+    private bool allOn = false;
 
     void Start()
     {
         //todo: update the initial instruction msg once we have model loading function
-        ShowInstructionMsg("Interaction Demo open Left/Right Tool Menu by\n pressing Left/Right Thunbstick");
         leftToolMenu.SetActive(false);
         rightToolMenu.SetActive(false);
         pinpointDisplay.SetActive(false);
@@ -117,6 +122,11 @@ public class MasterCtrl : MonoBehaviour
         clipperPos = leftClipper.transform.position;
         clipperRot = leftClipper.transform.rotation;
         iniBrainScale = brainModel.transform.localScale;
+
+        eb.SetActive(false);
+        pb.SetActive(false);
+        elNeurons.SetActive(false);
+        erNeurons.SetActive(false);
     }
 
     void Update()
@@ -124,8 +134,8 @@ public class MasterCtrl : MonoBehaviour
         TriggerListener();
         IndexTriggerRay();
         OpenMenu();
-        ModeListener();
         ModelToggleListener();
+        ModeListener();
         Restart();
         BackgroundToggle();
         ResetClippers();
@@ -137,35 +147,25 @@ public class MasterCtrl : MonoBehaviour
     {
         if (!isDrone) //should not open other tools when you are in drone mode
         {
-            leftToolMenu.SetActive(leftToolMenuOpen);
-            rightToolMenu.SetActive(rightToolMenuOpen);
-
             bool noTriggersPressed = !right_hand & !right_index & !left_hand & !left_index;
-
-            if (leftToolMenuOpen)
-            {
-                SelectTool();
-            }
-            else if (rightToolMenuOpen)
-            {
-                SelectTool();
-            }
-            else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstick) & noTriggersPressed)
+            if (OVRInput.GetDown(OVRInput.RawButton.LThumbstick) & noTriggersPressed)
             {
                 leftToolMenuOpen = true;
-                rightToolMenuOpen = false;
-                modePanel.SetActive(false);
                 leftToolMenu.transform.SetPositionAndRotation(leftController.transform.position, leftController.transform.rotation);
                 leftToolMenu.transform.parent = leftController.transform;
             }
             else if (OVRInput.GetDown(OVRInput.RawButton.RThumbstick) & noTriggersPressed)
             {
                 rightToolMenuOpen = true;
-                leftToolMenuOpen = false;
-                modePanel.SetActive(false);
                 rightToolMenu.transform.SetPositionAndRotation(rightController.transform.position, rightController.transform.rotation);
                 rightToolMenu.transform.parent = rightController.transform;
             }
+
+            if (!modePanel.activeSelf)
+                ShowInstructionMsg("Interaction Demo open Left/Right Tool Menu by\n pressing Left/Right Thunbstick");
+            leftToolMenu.SetActive(leftToolMenuOpen);
+            rightToolMenu.SetActive(rightToolMenuOpen);
+            SelectTool();
         }
 
     }
@@ -185,6 +185,7 @@ public class MasterCtrl : MonoBehaviour
                 droneMode = false;
 
                 leftToolMenuOpen = false;
+                rightToolMenuOpen = false;
                 ShowModeMsg("Slicer Mode");
                 ShowInstructionMsg("Hold both triggers on either controller and move to slice");
 
@@ -199,6 +200,7 @@ public class MasterCtrl : MonoBehaviour
                 sliceMode = false;
 
                 leftToolMenuOpen = false;
+                rightToolMenuOpen = false;
                 ShowModeMsg("Drone Mode");
                 ShowInstructionMsg("...insert rule for this mode here...");//todo: add rule
             }
@@ -212,11 +214,24 @@ public class MasterCtrl : MonoBehaviour
                 droneMode = false;
 
                 leftToolMenuOpen = false;
+                rightToolMenuOpen = false;
                 ShowModeMsg("Select neuropil/celltype to add");
                 ShowInstructionMsg("...insert rule for this mode here...");//todo: add rule
             }
+            else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstickDown))
+            {
+                modelLoadingMode = false;
+                singleRaySelectMode = false;
+                singleRayManipulationMode = false;
+                singleRayDepthCamMode = false;
+                sliceMode = false;
+                droneMode = false;
+
+                leftToolMenuOpen = false;
+            }
         }
-        else if (rightToolMenuOpen)
+
+        if (rightToolMenuOpen)
         {
             if (OVRInput.GetDown(OVRInput.RawButton.RThumbstickUp))
             {
@@ -227,6 +242,7 @@ public class MasterCtrl : MonoBehaviour
                 sliceMode = false;
                 droneMode = false;
 
+                leftToolMenuOpen = false;
                 rightToolMenuOpen = false;
                 ShowModeMsg("Single Ray Select");
                 ShowInstructionMsg("Hold both triggers on either controller to ray cast and select neuron");
@@ -240,8 +256,9 @@ public class MasterCtrl : MonoBehaviour
                 sliceMode = false;
                 droneMode = false;
 
+                leftToolMenuOpen = false;
                 rightToolMenuOpen = false;
-                ShowModeMsg("Single Ray Manipulation Mode"); 
+                ShowModeMsg("Single Ray Manipulation Mode");
                 ShowInstructionMsg("...insert rule for this mode here...");//todo: add rule
             }
             else if (OVRInput.GetDown(OVRInput.RawButton.RThumbstickRight))
@@ -253,9 +270,21 @@ public class MasterCtrl : MonoBehaviour
                 sliceMode = false;
                 droneMode = false;
 
+                leftToolMenuOpen = false;
                 rightToolMenuOpen = false;
                 ShowModeMsg("Single Ray Depth Camera Mode");
                 ShowInstructionMsg("...insert rule for this mode here...");//todo: add rule
+            }
+            else if (OVRInput.GetDown(OVRInput.RawButton.RThumbstickDown))
+            {
+                modelLoadingMode = false;
+                singleRaySelectMode = false;
+                singleRayManipulationMode = false;
+                singleRayDepthCamMode = false;
+                sliceMode = false;
+                droneMode = false;
+
+                rightToolMenuOpen = false;
             }
 
         }
@@ -365,33 +394,88 @@ public class MasterCtrl : MonoBehaviour
         }
     }
 
-    //TODO: allow adding and removing models (neuropils and celltypes )
     //TODO: now it is accessible on the tool menu, tho at the begining of the game we should also the model selection model
     void LoadModels() {
         // first line:
         if (modelMenu.activeSelf) {
             modelMenu.transform.position = leftController.transform.position + new Vector3(0, 0.2f, 0);
             modelMenu.transform.LookAt(2 * modelMenu.transform.position - userRig.transform.position);
-        }
 
-        // todo: remove this if we use the menu button... but i think this is nice since X is also for existing drone mode
-        if (OVRInput.GetDown(OVRInput.RawButton.X) & !isRestart) {
-            modelLoadingMode = false;
-            ShowModeMsg("");
-        }
-        // turn the menus on and off
-        // hopefully the menus are clickable --- make it compatitble with onclick -- probabaly just need a bunch of more methods
+            if (OVRInput.GetDown(OVRInput.RawButton.LThumbstickDown))
+            {
+                ScrollDown();
+            }
+            else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstickUp))
+            {
+                ScrollUp();
+            }
+            else if (OVRInput.GetDown(OVRInput.RawButton.A))
+            {
+                SelectMenuItem(currentMenuItem);
+            }
+            else if (OVRInput.GetDown(OVRInput.RawButton.X) & !isRestart)
+            {
+                modelLoadingMode = false;
+                modePanel.SetActive(false);
+            }
 
-        // only set bools for neurons
+            MenuItemColorUpdate();
+        }
+    }
+    void ScrollUp() {
+        if (currentMenuItem > 0) currentMenuItem--;
+    }
+    void ScrollDown() {
+        if (currentMenuItem < menuItems.Length - 1) currentMenuItem++;
+    }
+    void SelectMenuItem(int itemID)
+    {
+        if (itemID == 0) ebOn = !ebOn;
+        else if (itemID == 1) pbOn = !pbOn;
+        else if (itemID == 2) elNeuronsOn = !elNeuronsOn;
+        else if (itemID == 3) erNeuronsOn = !erNeuronsOn;
+        else if (itemID == 4)
+        {
+            allOn = ebOn & pbOn & elNeuronsOn & erNeuronsOn;
+            if (!allOn)
+            {
+                ebOn = true;
+                pbOn = true;
+                elNeuronsOn = true;
+                erNeuronsOn = true;
+            }
+            else
+            {
+                ebOn = false;
+                pbOn = false;
+                elNeuronsOn = false;
+                erNeuronsOn = false;
+            }
+        }
+    }
+    void MenuItemColorUpdate()
+    {
+        allOn = ebOn & pbOn & erNeuronsOn & elNeuronsOn;
+
+        if (ebOn) menuItems[0].GetComponent<Image>().color = onColor;
+        else menuItems[0].GetComponent<Image>().color = offColor;
+        if (pbOn) menuItems[1].GetComponent<Image>().color = onColor;
+        else menuItems[1].GetComponent<Image>().color = offColor;
+        if (elNeuronsOn) menuItems[2].GetComponent<Image>().color = onColor;
+        else menuItems[2].GetComponent<Image>().color = offColor;
+        if (erNeuronsOn) menuItems[3].GetComponent<Image>().color = onColor;
+        else menuItems[3].GetComponent<Image>().color = offColor;
+        if (allOn) menuItems[4].GetComponent<Image>().color = onColor;
+        else menuItems[4].GetComponent<Image>().color = offColor;
+
+        menuItems[currentMenuItem].GetComponent<Image>().color = hoverColor;
     }
     void ModelToggleListener() {
         modelMenu.SetActive(modelLoadingMode);
-        // the bools are set in the LoadModels
-        // this function is called in update() to toggle the models (neuropils and celltypes)-- we do not fuck with individual neurons
-        // todo: uncomment this:
-        // eb.SetActive(ebOn);
-        // pb.SetActive(phOn);
-        // elNeurons.SetActive(elNeuronsOn);
+        eb.SetActive(ebOn);
+        pb.SetActive(pbOn);
+        elNeurons.SetActive(elNeuronsOn);
+        erNeurons.SetActive(erNeuronsOn);
     }
 
 
@@ -431,7 +515,7 @@ public class MasterCtrl : MonoBehaviour
                 pinpointDisplay.SetActive(true);
                 pinpointDisplayMsg.text = hit.transform.parent.name;
                 pinpointDisplay.transform.SetLocalPositionAndRotation(hit.point, Quaternion.Euler(0f, userRig.transform.rotation.eulerAngles.y, 0f));
-
+                ShowModeMsg(hit.transform.parent.name);
                 GameObject theIndicatorBall = Instantiate(indicatorBall, hit.point, Quaternion.identity);
                 Destroy(theIndicatorBall, 0.02f);
             }
@@ -582,40 +666,30 @@ public class MasterCtrl : MonoBehaviour
         {
             if (right_index & right_hand)
             {
-                cameraIndicatorBall = Instantiate(indicatorBall, rightController.transform.position, Quaternion.identity);
+                cameraIndicatorBall = Instantiate(indicatorBall, rightController.transform.position, rightController.transform.rotation);
                 cameraIndicatorBall.transform.parent = rightController.transform;
                 cameraIndicatorBall.transform.localPosition = new Vector3(0f, 0f, 0.5f);
 
                 birdCam.enabled = true;
-                birdCam.transform.SetPositionAndRotation(cameraIndicatorBall.transform.position, Quaternion.Euler(90, userRig.transform.rotation.eulerAngles.y, 0));
-                birdCam.transform.parent = cameraIndicatorBall.transform.transform;
-                birdCam.transform.localPosition = new Vector3(0, 1, 0);
-
                 birdCamDisplay.SetActive(true);
-                pinpointDisplay.SetActive(true);
 
                 miniMap.SetActive(true);
-                miniMap.transform.SetPositionAndRotation(leftController.transform.position + new Vector3(0, 0.1f, 0), leftController.transform.rotation); ;
+                miniMap.transform.SetPositionAndRotation(leftController.transform.position + new Vector3(0, 0.15f, 0), leftController.transform.rotation); ;
                 miniMap.transform.parent = leftController.transform;
 
                 selected = true;
             }
             else if (left_index & left_hand)
             {
-                cameraIndicatorBall = Instantiate(indicatorBall, leftController.transform.position, Quaternion.identity);
+                cameraIndicatorBall = Instantiate(indicatorBall, leftController.transform.position, leftController.transform.rotation);
                 cameraIndicatorBall.transform.parent = leftController.transform;
                 cameraIndicatorBall.transform.localPosition = new Vector3(0f, 0f, 0.5f);
 
                 birdCam.enabled = true;
-                birdCam.transform.SetPositionAndRotation(cameraIndicatorBall.transform.position, Quaternion.Euler(90, userRig.transform.rotation.eulerAngles.y, 0));
-                birdCam.transform.parent = cameraIndicatorBall.transform.transform;
-                birdCam.transform.localPosition = new Vector3(0, 1, 0);
-
                 birdCamDisplay.SetActive(true);
-                pinpointDisplay.SetActive(true);
 
                 miniMap.SetActive(true);
-                miniMap.transform.SetPositionAndRotation(rightController.transform.position + new Vector3(0, 0.1f, 0), rightController.transform.rotation); ;
+                miniMap.transform.SetPositionAndRotation(rightController.transform.position + new Vector3(0, 0.15f, 0), rightController.transform.rotation); ;
                 miniMap.transform.parent = rightController.transform;
 
                 selected = true;
@@ -634,7 +708,6 @@ public class MasterCtrl : MonoBehaviour
             else
             {
                 selected = false;
-                pinpointDisplay.SetActive(false);
                 birdCam.transform.parent = null;
                 birdCam.enabled = false;
                 birdCamDisplay.SetActive(false);
@@ -647,53 +720,100 @@ public class MasterCtrl : MonoBehaviour
     {
         if (controller == rightController)
         {
+            birdCam.transform.position = ib.transform.position;
+            birdCam.transform.parent = cameraIndicatorBall.transform;
+
             if (OVRInput.Get(OVRInput.RawButton.RThumbstickUp))
             {
-                ib.transform.localPosition *= (1 + 1 * Time.deltaTime);
+                ib.transform.localPosition *= (1 + Time.deltaTime);
             }
             else if (OVRInput.Get(OVRInput.RawButton.RThumbstickDown))
             {
-                ib.transform.localPosition *= (1 - 1 * Time.deltaTime);
+                ib.transform.localPosition *= (1 - Time.deltaTime);
             }
-        }
-        else if (controller == leftController)
-        {
+            else if (OVRInput.Get(OVRInput.RawButton.RThumbstickRight))
+            {
+                birdCam.fieldOfView *= (1 + Time.deltaTime);
+            }
+            else if (OVRInput.Get(OVRInput.RawButton.RThumbstickLeft))
+            {
+                birdCam.fieldOfView *= (1 - Time.deltaTime);
+            }
+
             if (OVRInput.Get(OVRInput.RawButton.LThumbstickUp))
             {
-                ib.transform.localPosition *= (1 + 1 * Time.deltaTime);
+                birdCam.transform.RotateAround(birdCam.transform.position, birdCam.transform.right, -15 * Time.deltaTime);
             }
             else if (OVRInput.Get(OVRInput.RawButton.LThumbstickDown))
             {
-                ib.transform.localPosition *= (1 - 1 * Time.deltaTime);
+                birdCam.transform.RotateAround(birdCam.transform.position, birdCam.transform.right, 15 * Time.deltaTime);
             }
+            if (OVRInput.Get(OVRInput.RawButton.LThumbstickRight))
+            {
+                birdCam.transform.RotateAround(birdCam.transform.position, birdCam.transform.up, 15 * Time.deltaTime);
+            }
+            else if (OVRInput.Get(OVRInput.RawButton.LThumbstickLeft))
+            {
+                birdCam.transform.RotateAround(birdCam.transform.position, birdCam.transform.up, -15 * Time.deltaTime);
+            }
+
+            birdCam.transform.localRotation = Quaternion.Euler(birdCam.transform.localRotation.eulerAngles.x,
+                                                                        birdCam.transform.localRotation.eulerAngles.y,
+                                                                        -rightController.transform.rotation.eulerAngles.z);
         }
 
-        if (controller == rightController)
+        else if (controller == leftController)
         {
+            birdCam.transform.position = ib.transform.position;
+            birdCam.transform.parent = cameraIndicatorBall.transform;
+
             if (OVRInput.Get(OVRInput.RawButton.LThumbstickUp))
             {
-                birdCam.transform.localPosition *= (1 + 1 * Time.deltaTime);
+                ib.transform.localPosition *= (1 + Time.deltaTime);
             }
             else if (OVRInput.Get(OVRInput.RawButton.LThumbstickDown))
             {
-                birdCam.transform.localPosition *= (1 - 1 * Time.deltaTime);
+                ib.transform.localPosition *= (1 - Time.deltaTime);
             }
-        }
-        else if (controller == leftController)
-        {
+            else if (OVRInput.Get(OVRInput.RawButton.LThumbstickRight))
+            {
+                birdCam.fieldOfView *= (1 + Time.deltaTime);
+            }
+            else if (OVRInput.Get(OVRInput.RawButton.LThumbstickLeft))
+            {
+                birdCam.fieldOfView *= (1 - Time.deltaTime);
+            }
+
             if (OVRInput.Get(OVRInput.RawButton.RThumbstickUp))
             {
-                birdCam.transform.localPosition *= (1 + 1 * Time.deltaTime);
+                birdCam.transform.RotateAround(birdCam.transform.position, birdCam.transform.right, -15 * Time.deltaTime);
             }
             else if (OVRInput.Get(OVRInput.RawButton.RThumbstickDown))
             {
-                birdCam.transform.localPosition *= (1 - 1 * Time.deltaTime);
+                birdCam.transform.RotateAround(birdCam.transform.position, birdCam.transform.right, 15 * Time.deltaTime);
             }
+            if (OVRInput.Get(OVRInput.RawButton.RThumbstickRight))
+            {
+                birdCam.transform.RotateAround(birdCam.transform.position, birdCam.transform.up, 15 * Time.deltaTime);
+            }
+            else if (OVRInput.Get(OVRInput.RawButton.RThumbstickLeft))
+            {
+                birdCam.transform.RotateAround(birdCam.transform.position, birdCam.transform.up, -15 * Time.deltaTime);
+            }
+            birdCam.transform.localRotation = Quaternion.Euler(birdCam.transform.localRotation.eulerAngles.x,
+                                                                        birdCam.transform.localRotation.eulerAngles.y,
+                                                                        -leftController.transform.rotation.eulerAngles.z);
+        }
+        if (OVRInput.GetDown(OVRInput.RawButton.X) & !isRestart)
+        {
+            birdCam.fieldOfView = 60f;
+            birdCam.transform.localRotation = Quaternion.Euler(0,0,0);
         }
 
-        pinpointDisplay.transform.SetPositionAndRotation(ib.transform.position, Quaternion.Euler(0f, userRig.transform.rotation.eulerAngles.y, 0f));
-        pinpointDisplayMsg.text = "Camera Depth " + ib.transform.localPosition.z.ToString("F2") + "m\n" +
-            "Camera Height " + birdCam.transform.localPosition.y.ToString("F2") + "m";
+        ShowModeMsg("Camera Mode\nCamera Depth fov " + ib.transform.localPosition.z.ToString("F2") +
+            " m\n FOV "+((int)birdCam.fieldOfView).ToString() +
+            "\ndir (" + ((int)birdCam.transform.localRotation.eulerAngles.x).ToString()+","
+            + ((int)birdCam.transform.localRotation.eulerAngles.y).ToString() + ",0)");
 
         Vector3 babyIbPos = brainModel.transform.InverseTransformPoint(ib.transform.position);
         Quaternion babyIbRot = Quaternion.Inverse(brainModel.transform.rotation) * ib.transform.rotation;
@@ -818,13 +938,14 @@ public class MasterCtrl : MonoBehaviour
         { 
             isDrone = true;
             leftToolMenu.SetActive(false); // this line is to temporarily deal with a bug
+            rightToolMenu.SetActive(false);// same reason
             preDronePos = imDrone.transform.position;
             preDroneRot = imDrone.transform.rotation;
             dronePanel.SetActive(true);
             droneDirectionArrow.SetActive(true);
 
             miniMap.SetActive(true);
-            miniMap.transform.SetPositionAndRotation(leftController.transform.position + new Vector3(0, 0.1f * imDrone.transform.localScale.magnitude, 0), leftController.transform.rotation); ;
+            miniMap.transform.SetPositionAndRotation(leftController.transform.position + new Vector3(0, 0.15f * imDrone.transform.localScale.magnitude, 0), leftController.transform.rotation); ;
             miniMap.transform.parent = leftController.transform;
 
             if (OVRManager.instance.isInsightPassthroughEnabled & !droneToggledPassthrough)
@@ -846,7 +967,7 @@ public class MasterCtrl : MonoBehaviour
                 droneMode = false;
                 dronePanel.SetActive(false);
                 droneDirectionArrow.SetActive(false);
-                ShowModeMsg("");
+                modePanel.SetActive(false);
 
                 // toggle back passthrough if it was disabled earlier when entering drone mode
                 if (droneToggledPassthrough)
