@@ -88,6 +88,10 @@ public class MasterCtrl : MonoBehaviour
     private Vector3 iniBrainScale = Vector3.one;
     private List<float[]> snapshotList = new List<float[]>();
 
+    private GameObject selectedNeuronMesh = null;
+    private Material selectedNeuronMaterial = null;
+    Shader neuronClippableShader;
+
     // private bools for trigger controls
     private bool right_index = false;
     private bool right_hand = false;
@@ -127,6 +131,8 @@ public class MasterCtrl : MonoBehaviour
         pb.SetActive(false);
         elNeurons.SetActive(false);
         erNeurons.SetActive(false);
+
+        neuronClippableShader = Shader.Find("NeuronClippableShader");
     }
 
     void Update()
@@ -515,7 +521,30 @@ public class MasterCtrl : MonoBehaviour
                 pinpointDisplay.SetActive(true);
                 pinpointDisplayMsg.text = hit.transform.parent.name;
                 pinpointDisplay.transform.SetLocalPositionAndRotation(hit.point, Quaternion.Euler(0f, userRig.transform.rotation.eulerAngles.y, 0f));
-                ShowModeMsg(hit.transform.parent.name);
+
+                if (selectedNeuronMaterial == null)
+                {
+                    selectedNeuronMesh = hit.transform.gameObject; // store new one
+                    selectedNeuronMaterial = selectedNeuronMesh.GetComponent<MeshRenderer>().material;
+                    selectedNeuronMesh.GetComponent<Renderer>().material = lineMat;
+                }
+                else {
+                    // only restore and update new neuron is hit
+                    // this also allow the debug messa to only be updated when we have this transition
+                    // meaning the msg returns the restored shader name
+                    if (hit.transform.gameObject != selectedNeuronMesh)
+                    {
+                        selectedNeuronMesh.GetComponent<MeshRenderer>().material = selectedNeuronMaterial;
+                        selectedNeuronMesh.GetComponent<MeshRenderer>().material.shader = neuronClippableShader;
+
+                        ShowModeMsg(selectedNeuronMesh.GetComponent<MeshRenderer>().material.shader.ToString()); //this line seems to be working just fine so what the fuck...
+
+                        selectedNeuronMesh = hit.transform.gameObject; // store new one
+                        selectedNeuronMaterial = selectedNeuronMesh.GetComponent<MeshRenderer>().material;
+                        selectedNeuronMesh.GetComponent<Renderer>().material = lineMat;
+                    }
+                }
+
                 GameObject theIndicatorBall = Instantiate(indicatorBall, hit.point, Quaternion.identity);
                 Destroy(theIndicatorBall, 0.02f);
             }
