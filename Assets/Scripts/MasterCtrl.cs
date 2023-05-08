@@ -26,6 +26,7 @@ public class MasterCtrl : MonoBehaviour
 
     // the models and model loading menus
     public GameObject brainModel; // always keep this, this is the highest level model that is interacted with directly
+    public GameObject brain;
     public GameObject eb;
     public GameObject pb;
     public GameObject elNeurons;
@@ -47,6 +48,7 @@ public class MasterCtrl : MonoBehaviour
     public GameObject modePanel;
     public TextMeshProUGUI modeMsg;
     public GameObject dronePanel;
+    public GameObject comfortPanel;
     public TextMeshPro droneMsg;
     public GameObject droneDirectionArrow;
     public GameObject birdCamDisplay;
@@ -64,6 +66,7 @@ public class MasterCtrl : MonoBehaviour
     // helper var for tool use  
     private bool selected = false; // this is an flag set true when object is being manipuated by some tool
     private bool isDrone = false;
+    private bool isComfort = false;
     private bool isRestart = false;
     private bool droneToggledPassthrough = false;
     private bool leftClipperFixed = false;
@@ -89,21 +92,40 @@ public class MasterCtrl : MonoBehaviour
     private List<float[]> snapshotList = new List<float[]>();
 
     private GameObject selectedNeuronMesh = null;
-    private Material selectedNeuronMaterial = null;
-    Shader neuronClippableShader;
-
+    private GameObject selectedNeuronClone = null; 
     // private bools for trigger controls
     private bool right_index = false;
     private bool right_hand = false;
     private bool left_index = false;
     private bool left_hand = false;
 
-    ////private bools for toggling models;
+    //private bools for toggling models;
     private bool ebOn = false;
     private bool pbOn = false;
     private bool elNeuronsOn = false;
     private bool erNeuronsOn = false;
     private bool allOn = false;
+
+    //instuction visualiztions for displaying instruction messages
+    public GameObject droneHelp_L;
+    public GameObject droneHelp_R;
+    public GameObject sliceHelp_L;
+    public GameObject sliceHelp_R;
+    public GameObject loadHelp_L;
+    public GameObject loadHelp_R;
+    public GameObject camHelp_leftTrigger_L;
+    public GameObject camHelp_leftTrigger_R;
+    public GameObject camHelp_rightTrigger_L;
+    public GameObject camHelp_rightTrigger_R;
+    public GameObject manipulateHelp_leftTrigger_L;
+    public GameObject manipulateHelp_leftTrigger_R;
+    public GameObject manipulateHelp_rightTrigger_L;
+    public GameObject manipulateHelp_rightTrigger_R;
+    public GameObject selectHelp_L;
+    public GameObject selectHelp_R;
+    public GameObject nullHelp_L;
+    public GameObject nullHelp_R;
+
 
     void Start()
     {
@@ -118,6 +140,7 @@ public class MasterCtrl : MonoBehaviour
         leftClipperIndicator.SetActive(false);
         rightClipperIndicator.SetActive(false);
         dronePanel.SetActive(false);
+        comfortPanel.SetActive(false);
         restartPanel.SetActive(false);
         droneDirectionArrow.SetActive(false);
         modelMenu.SetActive(false);
@@ -132,7 +155,25 @@ public class MasterCtrl : MonoBehaviour
         elNeurons.SetActive(false);
         erNeurons.SetActive(false);
 
-        neuronClippableShader = Shader.Find("NeuronClippableShader");
+        droneHelp_L.SetActive(false);
+        droneHelp_R.SetActive(false);
+        sliceHelp_L.SetActive(false);
+        sliceHelp_R.SetActive(false);
+        loadHelp_L.SetActive(false);
+        loadHelp_R.SetActive(false);
+        camHelp_leftTrigger_L.SetActive(false);
+        camHelp_leftTrigger_R.SetActive(false);
+        camHelp_rightTrigger_L.SetActive(false);
+        camHelp_rightTrigger_R.SetActive(false);
+        manipulateHelp_leftTrigger_L.SetActive(false);
+        manipulateHelp_leftTrigger_R.SetActive(false);
+        manipulateHelp_rightTrigger_L.SetActive(false);
+        manipulateHelp_rightTrigger_R.SetActive(false);
+        selectHelp_L.SetActive(false);
+        selectHelp_R.SetActive(false);
+        nullHelp_L.SetActive(false);
+        nullHelp_R.SetActive(false);
+
     }
 
     void Update()
@@ -142,6 +183,7 @@ public class MasterCtrl : MonoBehaviour
         OpenMenu();
         ModelToggleListener();
         ModeListener();
+        InstructionListener();
         Restart();
         BackgroundToggle();
         ResetClippers();
@@ -168,7 +210,7 @@ public class MasterCtrl : MonoBehaviour
             }
 
             if (!modePanel.activeSelf)
-                ShowInstructionMsg("Interaction Demo open Left/Right Tool Menu by\n pressing Left/Right Thunbstick");
+                ShowInstructionMsg("Interaction Demo open Left/Right Tool Menu by\n pressing Left/Right Thumbstick");
             leftToolMenu.SetActive(leftToolMenuOpen);
             rightToolMenu.SetActive(rightToolMenuOpen);
             SelectTool();
@@ -192,8 +234,8 @@ public class MasterCtrl : MonoBehaviour
 
                 leftToolMenuOpen = false;
                 rightToolMenuOpen = false;
-                ShowModeMsg("Slicer Mode");
-                ShowInstructionMsg("Hold both triggers on either controller and move to slice");
+                ShowModeMsg("Clipper Mode");
+                ShowInstructionMsg("Hold Both triggers on Either controller to \n spawn Clipper, move controller to Clip");
 
             }
             else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstickLeft))
@@ -208,7 +250,7 @@ public class MasterCtrl : MonoBehaviour
                 leftToolMenuOpen = false;
                 rightToolMenuOpen = false;
                 ShowModeMsg("Drone Mode");
-                ShowInstructionMsg("...insert rule for this mode here...");//todo: add rule
+                ShowInstructionMsg("Drone Released, Operate the Drone with Controllers");
             }
             else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstickRight))
             {
@@ -221,18 +263,11 @@ public class MasterCtrl : MonoBehaviour
 
                 leftToolMenuOpen = false;
                 rightToolMenuOpen = false;
-                ShowModeMsg("Select neuropil/celltype to add");
-                ShowInstructionMsg("...insert rule for this mode here...");//todo: add rule
+                ShowModeMsg("Load Model Mode");
+                ShowInstructionMsg("Select Neuropil/Celltype to Load/Remove");
             }
             else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstickDown))
             {
-                modelLoadingMode = false;
-                singleRaySelectMode = false;
-                singleRayManipulationMode = false;
-                singleRayDepthCamMode = false;
-                sliceMode = false;
-                droneMode = false;
-
                 leftToolMenuOpen = false;
             }
         }
@@ -250,8 +285,8 @@ public class MasterCtrl : MonoBehaviour
 
                 leftToolMenuOpen = false;
                 rightToolMenuOpen = false;
-                ShowModeMsg("Single Ray Select");
-                ShowInstructionMsg("Hold both triggers on either controller to ray cast and select neuron");
+                ShowModeMsg("Nueron Select Mode");
+                ShowInstructionMsg("Hold Both triggers on Either controller to\nRaycast and Select neuron");
             }
             else if (OVRInput.GetDown(OVRInput.RawButton.RThumbstickLeft))
             {
@@ -264,8 +299,8 @@ public class MasterCtrl : MonoBehaviour
 
                 leftToolMenuOpen = false;
                 rightToolMenuOpen = false;
-                ShowModeMsg("Single Ray Manipulation Mode");
-                ShowInstructionMsg("...insert rule for this mode here...");//todo: add rule
+                ShowModeMsg("Model Manipulation Mode");
+                ShowInstructionMsg("Hold Both triggers on Either controller to\nRaycast and Grasp Model to Manipulate");
             }
             else if (OVRInput.GetDown(OVRInput.RawButton.RThumbstickRight))
             {
@@ -278,25 +313,16 @@ public class MasterCtrl : MonoBehaviour
 
                 leftToolMenuOpen = false;
                 rightToolMenuOpen = false;
-                ShowModeMsg("Single Ray Depth Camera Mode");
-                ShowInstructionMsg("...insert rule for this mode here...");//todo: add rule
+                ShowModeMsg("Camera Probe Mode");
+                ShowInstructionMsg("Hold Both triggers on Either controller to launch Camera Probe ");
             }
             else if (OVRInput.GetDown(OVRInput.RawButton.RThumbstickDown))
             {
-                modelLoadingMode = false;
-                singleRaySelectMode = false;
-                singleRayManipulationMode = false;
-                singleRayDepthCamMode = false;
-                sliceMode = false;
-                droneMode = false;
-
                 rightToolMenuOpen = false;
             }
-
         }
 
     }
-
 
     /// <summary>
     /// ABOVE THIS LINE ARE METHODS FOR UI FOR TOOL SELECTION
@@ -359,6 +385,107 @@ public class MasterCtrl : MonoBehaviour
         instructionMsg.text = theMsg;
     }
 
+     //this method updates the instructions that are locked to the controllers and tells user what does what;
+    void InstructionListener()
+    {
+        if (!leftToolMenuOpen)
+        {
+            selectHelp_L.SetActive(singleRaySelectMode);
+            droneHelp_L.SetActive(droneMode);
+            loadHelp_L.SetActive(modelLoadingMode);
+            sliceHelp_L.SetActive(sliceMode);
+            nullHelp_L.SetActive(!modePanel.activeSelf & !droneMode);
+
+            camHelp_leftTrigger_L.SetActive(singleRayDepthCamMode & (left_hand & left_index) & !(right_hand & right_index));
+            manipulateHelp_leftTrigger_L.SetActive(singleRayManipulationMode & (left_hand & left_index) & !(right_hand & right_index));
+            camHelp_rightTrigger_L.SetActive(singleRayDepthCamMode & !(left_hand & left_index) & (right_hand & right_index));
+            manipulateHelp_rightTrigger_L.SetActive(singleRayManipulationMode & !(left_hand & left_index) & (right_hand & right_index));
+            //if (left_hand & left_index)
+            //{
+            //    if (!(right_hand & right_index)) {
+            //        camHelp_leftTrigger_L.SetActive(singleRayDepthCamMode);
+            //        manipulateHelp_leftTrigger_L.SetActive(singleRayManipulationMode);
+            //    }
+            //}
+            //else if (right_hand & right_index)
+            //{
+            //    if (!(left_hand & left_index)) {
+            //        camHelp_rightTrigger_L.SetActive(singleRayDepthCamMode);
+            //        manipulateHelp_rightTrigger_L.SetActive(singleRayManipulationMode);
+            //    }
+            //}
+            //else {
+            //    camHelp_leftTrigger_L.SetActive(false);
+            //    manipulateHelp_leftTrigger_L.SetActive(false);
+            //    camHelp_rightTrigger_L.SetActive(false);
+            //    manipulateHelp_rightTrigger_L.SetActive(false);
+            //}
+
+        }
+        else {
+            selectHelp_L.SetActive(false);
+            droneHelp_L.SetActive(false);
+            loadHelp_L.SetActive(false);
+            sliceHelp_L.SetActive(false);
+            nullHelp_L.SetActive(false);
+            camHelp_leftTrigger_L.SetActive(false);
+            manipulateHelp_leftTrigger_L.SetActive(false);
+            camHelp_rightTrigger_L.SetActive(false);
+            manipulateHelp_rightTrigger_L.SetActive(false);
+        }
+
+        if (!rightToolMenuOpen)
+        {
+            selectHelp_R.SetActive(singleRaySelectMode);
+            droneHelp_R.SetActive(droneMode);
+            loadHelp_R.SetActive(modelLoadingMode);
+            sliceHelp_R.SetActive(sliceMode);
+            nullHelp_R.SetActive(!modePanel.activeSelf & !droneMode);
+
+            camHelp_leftTrigger_R.SetActive(singleRayDepthCamMode & (left_hand & left_index) & !(right_hand & right_index));
+            manipulateHelp_leftTrigger_R.SetActive(singleRayManipulationMode & (left_hand & left_index) & !(right_hand & right_index));
+            camHelp_rightTrigger_R.SetActive(singleRayDepthCamMode & !(left_hand & left_index) & (right_hand & right_index));
+            manipulateHelp_rightTrigger_R.SetActive(singleRayManipulationMode & !(left_hand & left_index) & (right_hand & right_index));
+            //if (left_hand & left_index)
+            //{
+            //    if (!(right_hand & right_index))
+            //    {
+            //        camHelp_leftTrigger_R.SetActive(singleRayDepthCamMode);
+            //        manipulateHelp_leftTrigger_R.SetActive(singleRayManipulationMode);
+            //    }
+            //}
+            //else if (right_hand & right_index)
+            //{
+            //    if (!(left_hand & left_index))
+            //    {
+            //        camHelp_rightTrigger_R.SetActive(singleRayDepthCamMode);
+            //        manipulateHelp_rightTrigger_R.SetActive(singleRayManipulationMode);
+            //    }
+            //}
+            //else
+            //{
+            //    camHelp_leftTrigger_R.SetActive(false);
+            //    manipulateHelp_leftTrigger_R.SetActive(false);
+            //    camHelp_rightTrigger_R.SetActive(false);
+            //    manipulateHelp_rightTrigger_R.SetActive(false);
+            //}
+        }
+        else
+        {
+            selectHelp_R.SetActive(false);
+            droneHelp_R.SetActive(false);
+            loadHelp_R.SetActive(false);
+            sliceHelp_R.SetActive(false);
+            nullHelp_R.SetActive(false);
+            camHelp_leftTrigger_R.SetActive(false);
+            manipulateHelp_leftTrigger_R.SetActive(false);
+            camHelp_rightTrigger_R.SetActive(false);
+            manipulateHelp_rightTrigger_R.SetActive(false);
+        }
+
+    }
+
+
     // restart function
     void Restart()
     {
@@ -415,7 +542,7 @@ public class MasterCtrl : MonoBehaviour
             {
                 ScrollUp();
             }
-            else if (OVRInput.GetDown(OVRInput.RawButton.A))
+            else if (OVRInput.GetDown(OVRInput.RawButton.A) & !isRestart)
             {
                 SelectMenuItem(currentMenuItem);
             }
@@ -508,6 +635,10 @@ public class MasterCtrl : MonoBehaviour
         {
             selected = false;
             pinpointDisplay.SetActive(false);
+
+            selectedNeuronMesh.SetActive(true); // activate selected neuron
+            Destroy(selectedNeuronClone); // destroy selection clone
+            selectedNeuronClone = null; // reset selection clone
         }
     }
     void SingleRaySelectEachHand(GameObject controller)
@@ -522,11 +653,14 @@ public class MasterCtrl : MonoBehaviour
                 pinpointDisplayMsg.text = hit.transform.parent.name;
                 pinpointDisplay.transform.SetLocalPositionAndRotation(hit.point, Quaternion.Euler(0f, userRig.transform.rotation.eulerAngles.y, 0f));
 
-                if (selectedNeuronMaterial == null)
+                if (selectedNeuronClone == null)
                 {
-                    selectedNeuronMesh = hit.transform.gameObject; // store new one
-                    selectedNeuronMaterial = selectedNeuronMesh.GetComponent<MeshRenderer>().material;
-                    selectedNeuronMesh.GetComponent<Renderer>().material = lineMat;
+                    selectedNeuronMesh = hit.transform.gameObject; // store new selection
+                    Destroy(selectedNeuronClone); // destroy old selection clone
+                    selectedNeuronClone = Instantiate(hit.transform.gameObject); // create new selection clone
+                    selectedNeuronMesh.SetActive(false); // disable selected neuron
+                    selectedNeuronClone.GetComponent<MeshRenderer>().material.color = Color.white; // set clone color
+                    selectedNeuronClone.transform.SetParent(brain.transform, false); // set clone parent and local scale
                 }
                 else {
                     // only restore and update new neuron is hit
@@ -534,14 +668,13 @@ public class MasterCtrl : MonoBehaviour
                     // meaning the msg returns the restored shader name
                     if (hit.transform.gameObject != selectedNeuronMesh)
                     {
-                        selectedNeuronMesh.GetComponent<MeshRenderer>().material = selectedNeuronMaterial;
-                        selectedNeuronMesh.GetComponent<MeshRenderer>().material.shader = neuronClippableShader;
-
-                        ShowModeMsg(selectedNeuronMesh.GetComponent<MeshRenderer>().material.shader.ToString()); //this line seems to be working just fine so what the fuck...
-
-                        selectedNeuronMesh = hit.transform.gameObject; // store new one
-                        selectedNeuronMaterial = selectedNeuronMesh.GetComponent<MeshRenderer>().material;
-                        selectedNeuronMesh.GetComponent<Renderer>().material = lineMat;
+                        selectedNeuronMesh.SetActive(true); // activate old selection
+                        selectedNeuronMesh = hit.transform.gameObject; // store new selection
+                        Destroy(selectedNeuronClone); // destroy old selection clone
+                        selectedNeuronClone = Instantiate(hit.transform.gameObject); // create new selection clone
+                        selectedNeuronMesh.SetActive(false); // disable selected neuron
+                        selectedNeuronClone.GetComponent<MeshRenderer>().material.color = Color.white; // set clone color
+                        selectedNeuronClone.transform.SetParent(brain.transform, false); // set clone parent and local scale
                     }
                 }
 
@@ -560,10 +693,12 @@ public class MasterCtrl : MonoBehaviour
     {
         if (right_index & right_hand)
         {
+            if(!(left_index & left_hand))
             SingleRayManipulationEachHand(rightController);
         }
         else if (left_index & left_hand)
         {
+            if(!(right_index & right_hand))
             SingleRayManipulationEachHand(leftController);
         }
         else
@@ -728,10 +863,12 @@ public class MasterCtrl : MonoBehaviour
         {
             if (right_index & right_hand)
             {
+                if (!(left_index & left_hand))
                 SingleRayDepthCamEachHand(rightController, cameraIndicatorBall);
             }
             else if (left_index & left_hand)
             {
+                if (!(right_index & right_hand))
                 SingleRayDepthCamEachHand(leftController, cameraIndicatorBall);
             }
             else
@@ -839,7 +976,7 @@ public class MasterCtrl : MonoBehaviour
             birdCam.transform.localRotation = Quaternion.Euler(0,0,0);
         }
 
-        ShowModeMsg("Camera Mode\nCamera Depth fov " + ib.transform.localPosition.z.ToString("F2") +
+        ShowModeMsg("Camera Mode\nCam Depth" + ib.transform.localPosition.z.ToString("F2") +
             " m\n FOV "+((int)birdCam.fieldOfView).ToString() +
             "\ndir (" + ((int)birdCam.transform.localRotation.eulerAngles.x).ToString()+","
             + ((int)birdCam.transform.localRotation.eulerAngles.y).ToString() + ",0)");
@@ -852,6 +989,8 @@ public class MasterCtrl : MonoBehaviour
         theMinimapArrow.transform.localScale = 666.7f * iniBrainScale.magnitude * new Vector3(imDrone.transform.localScale.x*0.66f, imDrone.transform.localScale.y, imDrone.transform.localScale.z) /brainModel.transform.localScale.magnitude;
         Destroy(theMinimapArrow, 0.02f);
     }
+
+
 
     // slice mode stuff
     // want to allow both hands to slice at the same time
@@ -986,7 +1125,8 @@ public class MasterCtrl : MonoBehaviour
         else
         {
             OperateDrone();
-
+            ComfortToggle();
+           
             if ((OVRInput.GetDown(OVRInput.RawButton.X)) & !isRestart)
             {
                 miniMap.SetActive(false);
@@ -994,6 +1134,7 @@ public class MasterCtrl : MonoBehaviour
                 imDrone.transform.SetPositionAndRotation(preDronePos, preDroneRot);
                 isDrone = false;
                 droneMode = false;
+                comfortPanel.SetActive(false);
                 dronePanel.SetActive(false);
                 droneDirectionArrow.SetActive(false);
                 modePanel.SetActive(false);
@@ -1007,6 +1148,10 @@ public class MasterCtrl : MonoBehaviour
             }   
         }
     }
+    void ComfortToggle() {
+        if (OVRInput.GetDown(OVRInput.RawButton.A)) isComfort = !isComfort;
+        ShowModeMsg("Drone Mode\n Comfort Mode " + isComfort.ToString());
+    }
     void OperateDrone()
     {
         float veloMod = 1;
@@ -1014,6 +1159,19 @@ public class MasterCtrl : MonoBehaviour
         {
             veloMod = imDrone.transform.localScale.x;
         }
+
+        if (OVRInput.Get(OVRInput.RawButton.LThumbstickUp) |
+            OVRInput.Get(OVRInput.RawButton.LThumbstickDown) |
+            OVRInput.Get(OVRInput.RawButton.LThumbstickLeft) |
+            OVRInput.Get(OVRInput.RawButton.LThumbstickRight) |
+            OVRInput.Get(OVRInput.RawButton.RThumbstickUp) |
+            OVRInput.Get(OVRInput.RawButton.RThumbstickDown) |
+            OVRInput.Get(OVRInput.RawButton.RThumbstickLeft) |
+            OVRInput.Get(OVRInput.RawButton.RThumbstickRight))
+        {
+            comfortPanel.SetActive(isComfort);
+        }
+        else comfortPanel.SetActive(false);
 
         //move up and down
         if (OVRInput.Get(OVRInput.RawButton.LThumbstickUp))
