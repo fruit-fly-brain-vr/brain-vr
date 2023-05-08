@@ -368,7 +368,7 @@ public class MasterCtrl : MonoBehaviour
         {
             // these are just extra protection, probably not nessary
             selected = false;
-            ShowInstructionMsg("Interaction Demo open Left/Right Tool Menu by\n pressing Left/Right Thunbstick");
+            ShowInstructionMsg("Interaction Demo open Left/Right Tool Menu by\n pressing Left/Right Thumbstick");
         }
     }
 
