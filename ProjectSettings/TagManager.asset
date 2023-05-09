@@ -4,7 +4,17 @@
 TagManager:
   serializedVersion: 2
   tags:
+  - ball
+  - boulder
+  - hole
+  - reference
+  - boulder1
+  - boulder2
+  - boulder3
+  - club
+  - rightLine
   - Neuropil
+  - Neuron
   layers:
   - Default
   - TransparentFX
