@@ -285,7 +285,7 @@ public class MasterCtrl : MonoBehaviour
 
                 leftToolMenuOpen = false;
                 rightToolMenuOpen = false;
-                ShowModeMsg("Nueron Select Mode");
+                ShowModeMsg("Neuron Select Mode");
                 ShowInstructionMsg("Hold Both triggers on Either controller to\nRaycast and Select neuron");
             }
             else if (OVRInput.GetDown(OVRInput.RawButton.RThumbstickLeft))
@@ -400,27 +400,6 @@ public class MasterCtrl : MonoBehaviour
             manipulateHelp_leftTrigger_L.SetActive(singleRayManipulationMode & (left_hand & left_index) & !(right_hand & right_index));
             camHelp_rightTrigger_L.SetActive(singleRayDepthCamMode & !(left_hand & left_index) & (right_hand & right_index));
             manipulateHelp_rightTrigger_L.SetActive(singleRayManipulationMode & !(left_hand & left_index) & (right_hand & right_index));
-            //if (left_hand & left_index)
-            //{
-            //    if (!(right_hand & right_index)) {
-            //        camHelp_leftTrigger_L.SetActive(singleRayDepthCamMode);
-            //        manipulateHelp_leftTrigger_L.SetActive(singleRayManipulationMode);
-            //    }
-            //}
-            //else if (right_hand & right_index)
-            //{
-            //    if (!(left_hand & left_index)) {
-            //        camHelp_rightTrigger_L.SetActive(singleRayDepthCamMode);
-            //        manipulateHelp_rightTrigger_L.SetActive(singleRayManipulationMode);
-            //    }
-            //}
-            //else {
-            //    camHelp_leftTrigger_L.SetActive(false);
-            //    manipulateHelp_leftTrigger_L.SetActive(false);
-            //    camHelp_rightTrigger_L.SetActive(false);
-            //    manipulateHelp_rightTrigger_L.SetActive(false);
-            //}
-
         }
         else {
             selectHelp_L.SetActive(false);
@@ -446,29 +425,6 @@ public class MasterCtrl : MonoBehaviour
             manipulateHelp_leftTrigger_R.SetActive(singleRayManipulationMode & (left_hand & left_index) & !(right_hand & right_index));
             camHelp_rightTrigger_R.SetActive(singleRayDepthCamMode & !(left_hand & left_index) & (right_hand & right_index));
             manipulateHelp_rightTrigger_R.SetActive(singleRayManipulationMode & !(left_hand & left_index) & (right_hand & right_index));
-            //if (left_hand & left_index)
-            //{
-            //    if (!(right_hand & right_index))
-            //    {
-            //        camHelp_leftTrigger_R.SetActive(singleRayDepthCamMode);
-            //        manipulateHelp_leftTrigger_R.SetActive(singleRayManipulationMode);
-            //    }
-            //}
-            //else if (right_hand & right_index)
-            //{
-            //    if (!(left_hand & left_index))
-            //    {
-            //        camHelp_rightTrigger_R.SetActive(singleRayDepthCamMode);
-            //        manipulateHelp_rightTrigger_R.SetActive(singleRayManipulationMode);
-            //    }
-            //}
-            //else
-            //{
-            //    camHelp_leftTrigger_R.SetActive(false);
-            //    manipulateHelp_leftTrigger_R.SetActive(false);
-            //    camHelp_rightTrigger_R.SetActive(false);
-            //    manipulateHelp_rightTrigger_R.SetActive(false);
-            //}
         }
         else
         {
@@ -636,9 +592,12 @@ public class MasterCtrl : MonoBehaviour
             selected = false;
             pinpointDisplay.SetActive(false);
 
-            selectedNeuronMesh.SetActive(true); // activate selected neuron
-            Destroy(selectedNeuronClone); // destroy selection clone
-            selectedNeuronClone = null; // reset selection clone
+            if (selectedNeuronMesh != null)
+            {
+                selectedNeuronMesh.SetActive(true); // activate selected neuron
+                Destroy(selectedNeuronClone); // destroy selection clone
+                selectedNeuronClone = null; // reset selection clone
+            }
         }
     }
     void SingleRaySelectEachHand(GameObject controller)
@@ -651,6 +610,7 @@ public class MasterCtrl : MonoBehaviour
                 selected = true;
                 pinpointDisplay.SetActive(true);
                 pinpointDisplayMsg.text = hit.transform.parent.name;
+                ShowModeMsg("Neuron Select Mode\ncurrent neuron\n" + hit.transform.parent.name);
                 pinpointDisplay.transform.SetLocalPositionAndRotation(hit.point, Quaternion.Euler(0f, userRig.transform.rotation.eulerAngles.y, 0f));
 
                 if (selectedNeuronClone == null)
@@ -704,7 +664,8 @@ public class MasterCtrl : MonoBehaviour
         else
         { 
             selected = false;
-            currentObj.transform.parent = null;
+            if (currentObj == brainModel)
+                currentObj.transform.parent = null;
         }
     }
     void SingleRayManipulationEachHand(GameObject controller)
@@ -1150,10 +1111,17 @@ public class MasterCtrl : MonoBehaviour
     }
     void ComfortToggle() {
         if (OVRInput.GetDown(OVRInput.RawButton.A)) isComfort = !isComfort;
-        ShowModeMsg("Drone Mode\n Comfort Mode " + isComfort.ToString());
+        if (isComfort)
+            ShowModeMsg("Drone Mode\n Comfort Mode\nON");
+        else
+            ShowModeMsg("Drone Mode\n Comfort Mode\nOFF");
     }
     void OperateDrone()
     {
+        droneDirectionArrow.transform.parent = userRig.transform;
+        droneDirectionArrow.transform.localPosition = new Vector3(0, -0.2f, 0.25f);
+        droneDirectionArrow.transform.rotation = imDrone.transform.rotation;
+
         float veloMod = 1;
         if (imDrone.transform.localScale.x <= 1f)
         {
