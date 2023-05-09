@@ -692,7 +692,8 @@ public class MasterCtrl : MonoBehaviour
                 // move up close far
                 if (OVRInput.Get(OVRInput.RawButton.RThumbstickUp))
                 {
-                    currentObj.transform.localPosition *= (1 + 1 * Time.deltaTime);//move further
+                    if (currentObj.transform.localPosition.z<6f)
+                        currentObj.transform.localPosition *= (1 + 1 * Time.deltaTime);//move further, max at 6m
                 }
                 else if (OVRInput.Get(OVRInput.RawButton.RThumbstickDown))
                 {
@@ -731,7 +732,8 @@ public class MasterCtrl : MonoBehaviour
             {
                 if (OVRInput.Get(OVRInput.RawButton.LThumbstickUp))
                 {
-                    currentObj.transform.localPosition *= (1 + 1 * Time.deltaTime);
+                    if (currentObj.transform.localPosition.z < 6f)
+                        currentObj.transform.localPosition *= (1 + 1 * Time.deltaTime);
                 }
                 else if (OVRInput.Get(OVRInput.RawButton.LThumbstickDown))
                 {
