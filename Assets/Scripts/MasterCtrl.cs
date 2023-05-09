@@ -616,7 +616,7 @@ public class MasterCtrl : MonoBehaviour
                 if (selectedNeuronClone == null)
                 {
                     selectedNeuronMesh = hit.transform.gameObject; // store new selection
-                    Destroy(selectedNeuronClone); // destroy old selection clone
+                    //Destroy(selectedNeuronClone); // destroy old selection clone
                     selectedNeuronClone = Instantiate(hit.transform.gameObject); // create new selection clone
                     selectedNeuronMesh.SetActive(false); // disable selected neuron
                     selectedNeuronClone.GetComponent<MeshRenderer>().material.color = Color.white; // set clone color
@@ -1006,14 +1006,14 @@ public class MasterCtrl : MonoBehaviour
         }
 
         // the "fixClip" botton, sets "clip fixed"; if clip fixed, set its parent to the brain object
-        if (!isRestart & OVRInput.GetDown(OVRInput.RawButton.X))
+        if (!isRestart & OVRInput.GetDown(OVRInput.RawButton.X) & !(left_index & left_hand))
         {
             // fix left controller
             leftClipperFixed = true;
             leftClipper.transform.parent = brainModel.transform;
 
         }
-        else if (!isRestart & OVRInput.GetDown(OVRInput.RawButton.A))
+        else if (!isRestart & OVRInput.GetDown(OVRInput.RawButton.A) & !(right_hand & right_index))
         {
             // fix right controller
             rightClipperFixed = true;
