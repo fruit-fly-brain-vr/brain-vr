@@ -5925,11 +5925,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4118155370592924939, guid: 2eea78cb08bc54493be3c1e30694bd34, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4555399465683709086, guid: 2eea78cb08bc54493be3c1e30694bd34, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4753431658112833654, guid: 2eea78cb08bc54493be3c1e30694bd34, type: 3}
       propertyPath: m_Pivot.x
